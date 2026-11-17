@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.npm-cache/
+*.tsbuildinfo
+*.local
+.env
+.env.*
+!.env.example
+experiments/results/*
+!experiments/results/.gitkeep
+*.log
