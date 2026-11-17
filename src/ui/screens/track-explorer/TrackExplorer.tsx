@@ -7,10 +7,12 @@ import { dfs, connectedComponents, analyzeDeadEnds } from '../../../core/algorit
 import { reconstructPath } from '../../../core/algorithms/exploration/contracts';
 import { alternativeRoutes } from '../../../core/algorithms/exploration/alternativeRoutes';
 import type { MapRoad, TrackMapData } from '../../components/map/map-model';
+import { PresetComparison } from '../../components/map/PresetComparison';
+import type { PresetProvider } from '../../adapters/preset-view';
 
 const limits = { maxRoutes: 4, maxEdges: 14, maxExpansions: 2000 };
 
-export function TrackExplorer({ showLabels, track: sharedTrack, onChangeRoad, onRestoreRoads }: { showLabels: boolean; track?: TrackMapData; onChangeRoad?: (id: string, status: MapRoad['status']) => void; onRestoreRoads?: () => void }) {
+export function TrackExplorer({ showLabels, track: sharedTrack, onChangeRoad, onRestoreRoads, presetProvider }: { showLabels: boolean; track?: TrackMapData; onChangeRoad?: (id: string, status: MapRoad['status']) => void; onRestoreRoads?: () => void; presetProvider?: PresetProvider }) {
   const [selected, setSelected] = useState(0);
   const [source, setSource] = useState(0);
   const [target, setTarget] = useState(6);
@@ -53,5 +55,6 @@ export function TrackExplorer({ showLabels, track: sharedTrack, onChangeRoad, on
       <p className="small-text">Dead-end IDs: {analysis.deadEnds.join(', ') || 'none'}. This test excludes each vertex’s DFS arrival edge; mandatory vertices are excluded.</p>
       <h3 className="inspector-section">Try a road change</h3><label className="field-label" htmlFor="road-selection">Road</label><select id="road-selection" value={roadId} onChange={(event) => setRoadId(event.target.value)}>{track.roads.map((item) => <option key={item.id} value={item.id}>{item.id} ({item.status})</option>)}</select><button className="button secondary road-toggle" onClick={() => { const original = previewTrack.roads.find((item) => item.id === roadId)!; changeRoad(roadId, road.status === 'blocked' ? original.status === 'blocked' ? 'open' : original.status : 'blocked'); }}>{road.status === 'blocked' ? 'Reopen selected road' : 'Block selected road'}</button><button className="text-button" onClick={() => { if (onRestoreRoads) onRestoreRoads(); else setOverrides({}); setRouteIndex(0); }}>Restore road layout</button>
     </aside></div>
+    <PresetComparison track={track} source={source} target={target} showLabels={showLabels} examples={routes} provider={presetProvider} />
   </>;
 }

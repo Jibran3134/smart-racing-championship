@@ -8,6 +8,8 @@ Scope: your responsibilities in `DAA Project division.docx`. This plan starts fr
 
 **Iteration 2 update, 17 November:** BFS/DFS, Explorer paths/closures, trace playback and the event queue/effect simulation are delivered. See [Iteration 2 status](iteration-2-status.md). Weighted routing, Dijkstra/A* replay and real race-tick integration await Alishba's modules and shared-contract agreement.
 
+**Iteration 3 update, 17 November:** race presentation, controller lifecycle, dashboard/charts and the preset comparison UI are implemented against provisional adapters. See [Iteration 3 status](iteration-3-status.md). Playable-race acceptance, actual standings/top-k and optimized preset routes remain pending core modules; previews do not count as their completion.
+
 - Complete: folder structure, dependencies, starter screen, TypeScript, lint, build and test configuration.
 - Pending: shared contracts, all algorithms, event behavior, real screens and experiments. The current test command allows an empty suite; that is not evidence of implemented behavior.
 - Keep personal names out of the product UI.
