@@ -1,51 +1,53 @@
-export interface EngineSoundState { rpm: number; speedKph: number; braking: boolean; boosting: boolean }
+import { CarAudioVoice } from './CarAudioVoice';
+import { loadRacingSamples } from './racing-samples';
+import type { RacingSamples } from './racing-samples';
+import type { RaceSoundState } from './race-sound-state';
 
-/** Procedural Web Audio soundscape; created only after a user's sound gesture. */
+/** Recorded multi-car field mix; audio sources are independent of race logic. */
 export class RacingAudio {
   private readonly master: GainNode;
-  private readonly engine: GainNode;
   private readonly wind: GainNode;
-  private readonly tyres: GainNode;
-  private readonly turbo: GainNode;
-  private readonly voices: OscillatorNode[] = [];
   private readonly noise: AudioBufferSourceNode;
+  private readonly cars = new Map<number, CarAudioVoice>();
   private readonly cues = new Set<OscillatorNode>();
+  private readonly abort = new AbortController();
+  private samples: RacingSamples | undefined;
+  private loading: Promise<void> | undefined;
   private active = false;
   private volume = 0.35;
   private disposed = false;
-  private cutUntil = 0;
+  private perspective = '';
   private celebration: ReturnType<typeof setTimeout> | undefined;
 
-  constructor(private readonly context: AudioContext) {
+  constructor(private readonly context: AudioContext, samples?: RacingSamples) {
+    this.samples = samples;
     this.master = context.createGain(); this.master.gain.value = 0;
     const limiter = context.createDynamicsCompressor();
-    limiter.threshold.value = -18; limiter.ratio.value = 5; limiter.attack.value = 0.005; limiter.release.value = 0.15;
+    limiter.threshold.value = -14; limiter.ratio.value = 8; limiter.attack.value = 0.004; limiter.release.value = 0.18;
     this.master.connect(limiter); limiter.connect(context.destination);
-    this.engine = context.createGain(); this.engine.gain.value = 0;
-    const exhaust = context.createBiquadFilter(); exhaust.type = 'lowpass'; exhaust.frequency.value = 2300; exhaust.Q.value = 0.8;
-    this.engine.connect(exhaust); exhaust.connect(this.master);
-    const wave = context.createPeriodicWave(new Float32Array(9), new Float32Array([0, 1, 0.55, 0.3, 0.22, 0.14, 0.1, 0.07, 0.04]));
-    for (const [index, ratio] of [1, 2.005, 0.501].entries()) {
-      const voice = context.createOscillator(); voice.setPeriodicWave(wave);
-      voice.frequency.value = 36 * ratio;
-      const level = context.createGain(); level.gain.value = [0.26, 0.12, 0.14][index];
-      voice.connect(level); level.connect(this.engine); voice.start(); this.voices.push(voice);
-    }
-    // Seeded brown noise avoids network assets and keeps the timbre reproducible.
+    // Wind/air and mechanical textures only; engine and tyres use recordings.
     const buffer = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
-    const samples = buffer.getChannelData(0); let seed = 137; let previous = 0;
-    for (let index = 0; index < samples.length; index++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; previous = (previous + 0.02 * (seed / 2147483648 - 1)) / 1.02; samples[index] = previous * 2.5 + (seed / 2147483648 - 1) * 0.22; }
+    const values = buffer.getChannelData(0); let seed = 137; let brown = 0;
+    for (let index = 0; index < values.length; index++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const white = seed / 2147483648 - 1;
+      brown = (brown + 0.02 * white) / 1.02;
+      values[index] = brown * 2.5 + white * 0.22;
+    }
     this.noise = context.createBufferSource(); this.noise.buffer = buffer; this.noise.loop = true;
-    const noiseBranch = (frequency: number, type: BiquadFilterType) => {
-      const filter = context.createBiquadFilter(); filter.type = type; filter.frequency.value = frequency;
-      const gain = context.createGain(); gain.gain.value = 0;
-      this.noise.connect(filter); filter.connect(gain); gain.connect(this.master); return gain;
-    };
-    this.wind = noiseBranch(1600, 'lowpass'); this.tyres = noiseBranch(2300, 'bandpass'); this.turbo = noiseBranch(4200, 'highpass');
-    this.noise.start();
+    const filter = context.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 1100;
+    this.wind = context.createGain(); this.wind.gain.value = 0;
+    this.noise.connect(filter); filter.connect(this.wind); this.wind.connect(this.master); this.noise.start();
   }
 
   resume(): Promise<void> { return this.context.resume(); }
+  loadSamples(): Promise<void> {
+    if (this.samples || this.disposed) return Promise.resolve();
+    if (!this.loading) this.loading = loadRacingSamples(this.context, this.abort.signal)
+      .then((samples) => { if (!this.disposed) this.samples = samples; })
+      .catch((error: unknown) => { this.loading = undefined; throw error; });
+    return this.loading;
+  }
   setVolume(value: number): void {
     this.volume = Math.max(0, Math.min(1, value));
     this.master.gain.setTargetAtTime(this.active ? this.volume : 0, this.context.currentTime, 0.02);
@@ -60,34 +62,38 @@ export class RacingAudio {
     if (active) await this.context.resume();
     else if (this.context.state === 'running') await this.context.suspend();
   }
-  update(state: EngineSoundState): void {
-    if (this.disposed) return;
-    const time = this.context.currentTime;
-    const fundamental = Math.max(25, Math.min(350, state.rpm / 60 * 2));
-    this.voices.forEach((voice, index) => voice.frequency.setTargetAtTime(fundamental * [1, 2.005, 0.501][index], time, 0.045));
-    this.engine.gain.setTargetAtTime(time < this.cutUntil ? 0.07 : 0.3 + Math.min(0.45, state.speedKph / 650), time, 0.018);
-    this.wind.gain.setTargetAtTime(Math.min(0.22, state.speedKph / 1800), time, 0.08);
-    this.tyres.gain.setTargetAtTime(state.braking && state.speedKph > 80 ? 0.18 : 0, time, 0.035);
-    this.turbo.gain.setTargetAtTime(state.boosting ? 0.32 : 0, time, 0.035);
+  update(frame: RaceSoundState): void {
+    if (this.disposed || !this.samples) return;
+    const perspective = `${frame.listener.carId}-${frame.listener.overview}`;
+    if (perspective !== this.perspective) { this.cars.forEach((voice) => voice.resetMotionHistory()); this.perspective = perspective; }
+    const ids = new Set(frame.cars.map((car) => car.id));
+    for (const [id, voice] of this.cars) if (!ids.has(id)) { voice.dispose(); this.cars.delete(id); }
+    for (const car of frame.cars) {
+      let voice = this.cars.get(car.id);
+      if (!voice) { voice = new CarAudioVoice(this.context, this.samples, this.noise, this.master, car.id); this.cars.set(car.id, voice); }
+      voice.update(car, frame);
+    }
+    const focus = frame.cars.find((car) => car.id === frame.listener.carId);
+    this.wind.gain.setTargetAtTime(focus?.running ? Math.min(0.14, focus.speedKph / 2200) : 0, this.context.currentTime, 0.1);
   }
-  countdown(go = false): void { this.tone(go ? 1046 : 523, 0, go ? 0.32 : 0.12, 0.22); }
-  shift(): void { this.cutUntil = this.context.currentTime + 0.08; this.tone(90, 0, 0.065, 0.1); }
-  checkpoint(): void { this.tone(1396, 0, 0.055, 0.05); }
+  countdown(go = false): void { this.tone(go ? 1046 : 523, 0, go ? 0.22 : 0.1, 0.12); }
   async finish(): Promise<void> {
     if (this.disposed) return;
     this.cancelCelebration(); this.active = false;
     const time = this.context.currentTime;
-    this.engine.gain.setValueAtTime(0, time); this.wind.gain.setValueAtTime(0, time); this.tyres.gain.setValueAtTime(0, time); this.turbo.gain.setValueAtTime(0, time);
+    this.cars.forEach((voice) => voice.fadeOut()); this.wind.gain.setTargetAtTime(0, time, 0.12);
     this.master.gain.setValueAtTime(this.volume, time);
     await this.context.resume();
     if (this.disposed) return;
-    [523.25, 659.25, 783.99, 1046.5].forEach((frequency, index) => this.tone(frequency, index * 0.12, 0.2, 0.13));
+    // Quiet race-control acknowledgement instead of a melodic arcade fanfare.
+    this.tone(880, 0.15, 0.09, 0.075); this.tone(660, 0.3, 0.1, 0.075);
     this.celebration = setTimeout(() => { this.celebration = undefined; if (!this.disposed) { this.master.gain.setValueAtTime(0, this.context.currentTime); void this.context.suspend().catch(() => {}); } }, 850);
   }
   dispose(): void {
     if (this.disposed) return;
-    this.disposed = true; this.cancelCelebration(); this.master.gain.value = 0;
-    for (const source of [...this.voices, this.noise, ...this.cues]) { try { source.stop(); source.disconnect(); } catch { /* Already ended. */ } }
+    this.disposed = true; this.abort.abort(); this.cancelCelebration(); this.master.gain.value = 0;
+    this.cars.forEach((voice) => voice.dispose()); this.cars.clear();
+    for (const source of [this.noise, ...this.cues]) { try { source.stop(); source.disconnect(); } catch { /* Already ended. */ } }
     this.cues.clear(); this.master.disconnect();
     if (this.context.state !== 'closed') void this.context.close().catch(() => {});
   }

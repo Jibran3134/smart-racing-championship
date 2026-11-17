@@ -15,7 +15,7 @@ Run `npm run dev`, open **Race**, choose **Start driving demo**, then **Start ra
 | Camera car | Follow a chosen racer without changing the human-controlled car |
 | − / 1:1 / + | Adjust/reset camera zoom |
 | Fullscreen | Expand the racing viewport; native Escape exits |
-| Master volume | Set synthesized audio volume |
+| Master volume | Set the recorded multi-car audio mix volume |
 
 Keyboard shortcuts apply when the racing viewport has focus: click/tap the circuit first. They do not intercept input/select/button controls. Mobile users have camera, pause and nitro buttons. Leaving the race or hiding the browser tab pauses advancement; returning starts paused.
 
@@ -46,7 +46,9 @@ This is a 2D route-racing model with arcade acceleration/corner braking. It does
 
 ## Audio
 
-`RacingAudio` synthesizes engine harmonics/exhaust, wind, tyre scrub, turbo/boost, gear cuts, countdown/go tones, checkpoint cues and a finish fanfare. It downloads no audio assets and requires no additional package. Pitch follows RPM; noise/envelopes follow speed, braking and boost.
+`RacingAudio` now mixes recorded engine and tyre loops for every racer through independent `CarAudioVoice` instances. Each car has its own RPM, pitch profile, loop offset, gear cuts, braking and boost response. Distance, stereo position, filtering and bounded Doppler follow the selected camera car; circuit view balances the field. A finished or retired player does not silence opponents still racing. Quiet generated wind, mechanical textures and race-control cues supplement the recordings. No additional package is required.
+
+The two processed WAV files are served locally from `public/audio/`. Their source authors, licenses and modifications are documented in [the shipped sound credits](../public/audio/CREDITS.txt), also linked from the race controls. See [audio mix details](audio-mix.md).
 
 Audio is instantiated/resumed from the **Start race** gesture, **Enable sound**, or the sound hotkey. An explicit mute is preserved through pause/resume and restart within the session. Master volume defaults to 35%. Pause/mute suspend the audio context; leaving the race stops/disconnects sources, clears the fanfare timer and closes the context. Unsupported/blocked audio produces a status message while racing remains usable. Implementation follows [MDN's Web Audio best practices](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Best_practices) and [AudioContext resume behavior](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/resume).
 
@@ -54,6 +56,6 @@ Audio is instantiated/resumed from the **Start race** gesture, **Enable sound**,
 
 Core tests cover countdown, fixed-step equivalence, full ordered two-lap finishes, position continuity through road changes, nitro charge/fuel/expiry behavior, waiting/reopening, fuel DNF, time limits, service stops, pickup capacity/consumption and independent snapshots/configuration.
 
-Audio tests cover silent initialization, RPM changes, pause/mute suspension, race cues, fanfare termination, source disconnection and context disposal. UI tests cover camera/hotkeys, input-field isolation, unsupported audio and hidden-tab pausing. Existing exploration/event/dashboard tests remain in place.
+Audio tests cover independent recorded voices, spatial attenuation/panning, bounded Doppler, sample loading/failure/abort, source reuse and retirement, pause/mute, race cues and disposal. UI tests also cover camera audio perspective and muting during sample loading. Existing exploration/event/dashboard tests remain in place.
 
 Chrome checks additionally measured a non-zero live Web Audio output signal, checked countdown/racing/nitro, camera views, mute/resume/cleanup, and responsive layouts at 320/390/768/1600 pixels. Hardware-specific speaker/headphone playback and subjective sound quality still need user review.

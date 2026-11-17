@@ -4,6 +4,7 @@ import { drawRaceScene } from './race-renderer';
 import type { SceneCache } from './race-renderer';
 import type { RaceViewState } from '../../adapters/race-view';
 import { formatRaceTime } from '../../adapters/race-view';
+import type { AudioPerspective } from '../../audio/race-sound-state';
 
 interface RaceSceneProps {
   state: RaceViewState;
@@ -13,9 +14,10 @@ interface RaceSceneProps {
   onNitro: () => void;
   nitroAvailable: boolean;
   onToggleSound: () => void;
+  onPerspectiveChange?: (perspective: AudioPerspective) => void;
 }
 
-export function RaceScene({ state, playing, showLabels, onTogglePause, onNitro, nitroAvailable, onToggleSound }: RaceSceneProps) {
+export function RaceScene({ state, playing, showLabels, onTogglePause, onNitro, nitroAvailable, onToggleSound, onPerspectiveChange }: RaceSceneProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const cache = useRef<SceneCache>({ angles: new Map(), time: 0 });
@@ -32,6 +34,10 @@ export function RaceScene({ state, playing, showLabels, onTogglePause, onNitro, 
   const selected = state.cars.find((car) => car.id === focusId) ?? player;
   const speed = player?.speedKph;
   const rpm = player?.rpm ?? 0;
+
+  useEffect(() => {
+    onPerspectiveChange?.({ carId: selected?.id ?? null, overview: camera === 'overview' });
+  }, [selected?.id, camera, onPerspectiveChange]);
 
   useEffect(() => {
     const element = canvas.current;
