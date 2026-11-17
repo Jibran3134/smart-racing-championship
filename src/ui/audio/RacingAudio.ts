@@ -74,7 +74,7 @@ export class RacingAudio {
       voice.update(car, frame);
     }
     const focus = frame.cars.find((car) => car.id === frame.listener.carId);
-    this.wind.gain.setTargetAtTime(focus?.running ? Math.min(0.14, focus.speedKph / 2200) : 0, this.context.currentTime, 0.1);
+    this.wind.gain.setTargetAtTime(focus?.running ? Math.min(0.035, focus.speedKph / 9000) : 0, this.context.currentTime, 0.1);
   }
   countdown(go = false): void { this.tone(go ? 1046 : 523, 0, go ? 0.22 : 0.1, 0.12); }
   async finish(): Promise<void> {

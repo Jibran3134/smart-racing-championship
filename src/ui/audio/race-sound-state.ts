@@ -37,6 +37,6 @@ export function spatialMix(car: CarSoundState, listener: RaceSoundState['listene
     gain: focus ? 1 : listener.overview ? 0.56 / (1 + distance / 1000) : 0.82 / (1 + (distance / 110) ** 1.45),
     pan: focus ? 0 : Math.max(-0.9, Math.min(0.9, (car.x - listener.x) / (listener.overview ? 420 : 175))),
     doppler: focus ? 1 : Math.max(0.88, Math.min(1.14, 343 / (343 + Math.max(-100, Math.min(100, radialSpeed))))),
-    lowpass: focus ? 6800 : Math.max(1300, 6200 / (1 + distance / 280)),
+    lowpass: focus ? 14000 : Math.max(2200, 11000 / (1 + distance / 350)),
   };
 }

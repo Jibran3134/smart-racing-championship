@@ -2,6 +2,7 @@ import { RouteRace } from '../../core/engine/RouteRace';
 import type { DrivingSetup } from '../../core/engine/RouteRace';
 import type { RaceDriver, RacerView } from '../adapters/race-view';
 import { previewTrack } from './preview-track';
+import { formulaPowertrain } from '../adapters/formula-powertrain';
 
 /** Draft demonstration setup. Tunings are explicit, not frozen shared config. */
 export function drivingDemoSetup(): DrivingSetup {
@@ -34,16 +35,19 @@ export function drivingDemoSetup(): DrivingSetup {
 export function createDrivingDemo(): RaceDriver {
   const setup = drivingDemoSetup();
   let engine = new RouteRace(setup);
+  const gears = new Map<number, number>();
   const colors = ['#d7ff59', '#58d5ff', '#ff6d90', '#c0a0ff'];
   return {
     kind: 'demo', start: () => engine.start(), step: (seconds) => engine.step(seconds),
-    restart: () => { engine = new RouteRace(setup); }, activateNitro: () => { engine.activateNitro(); },
+    restart: () => { engine = new RouteRace(setup); gears.clear(); }, activateNitro: () => { engine.activateNitro(); },
     getState() {
       const state = engine.getState();
       const cars: RacerView[] = new Array(state.cars.length);
       state.cars.forEach((car, index) => {
         const speedKph = car.speed * 3.6;
-        const gear = car.speed < 0.5 ? 0 : Math.min(6, Math.max(1, Math.floor(speedKph / 55) + 1));
+        const powertrain = formulaPowertrain(speedKph, gears.get(car.id) ?? 0, car.braking);
+        const { gear } = powertrain;
+        gears.set(car.id, gear);
         cars[car.position - 1] = {
           id: car.id, label: car.name, color: colors[index % colors.length], isHuman: car.isHuman, position: car.position,
           location: { edge: car.edgeId, progress: car.reverse ? 1 - car.progress : car.progress, reverse: car.reverse },
@@ -51,7 +55,7 @@ export function createDrivingDemo(): RaceDriver {
           status: car.status, statusReason: car.reason, fuel: Math.round(car.fuel * 10) / 10, fuelCapacity: setup.config.fuelCapacity,
           finishTime: car.finishTime,
           nitro: car.nitro, nitroCapacity: setup.config.nitroCapacity, lap: Math.min(setup.config.laps, car.completedLaps + 1), checkpoint: car.checkpoint,
-          speedKph, gear, rpm: car.speed < 0.5 ? 1100 : Math.min(9500, 3200 + (speedKph % 55) / 55 * 5700), braking: car.braking, boosting: car.nitroUntil > state.clock && car.status === 'racing',
+          speedKph, gear, rpm: state.phase === 'countdown' ? 6500 + index * 120 : powertrain.rpm, braking: car.braking, boosting: car.nitroUntil > state.clock && car.status === 'racing',
         };
       });
       return {

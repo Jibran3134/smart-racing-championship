@@ -1,4 +1,4 @@
-export interface RacingSamples { engine: AudioBuffer; tyres: AudioBuffer }
+export interface RacingSamples { v10: AudioBuffer; v8: AudioBuffer; tyres: AudioBuffer }
 
 /** Assets are bundled locally; runtime never contacts an external sound host. */
 export async function loadRacingSamples(context: BaseAudioContext, signal: AbortSignal): Promise<RacingSamples> {
@@ -9,6 +9,6 @@ export async function loadRacingSamples(context: BaseAudioContext, signal: Abort
     if (signal.aborted) throw new DOMException('Audio loading cancelled.', 'AbortError');
     return context.decodeAudioData(data);
   };
-  const [engine, tyres] = await Promise.all([load('engine-loop.wav'), load('tire-squeal.wav')]);
-  return { engine, tyres };
+  const [v10, v8, tyres] = await Promise.all([load('formula-v10.wav'), load('formula-v8.wav'), load('tire-squeal.wav')]);
+  return { v10, v8, tyres };
 }

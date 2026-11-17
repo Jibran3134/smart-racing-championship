@@ -3,15 +3,15 @@ import { loadRacingSamples } from '../../src/ui/audio/racing-samples';
 
 afterEach(() => vi.unstubAllGlobals());
 describe('local racing recordings', () => {
-  it('loads and decodes both bundled recordings without external requests', async () => {
+  it('loads and decodes the bundled recordings without external requests', async () => {
     const fetch = vi.fn(async (url: string) => ({ ok: url.startsWith('/audio/'), arrayBuffer: async () => new ArrayBuffer(8) }));
     vi.stubGlobal('fetch', fetch);
     const buffer = { duration: 1 } as AudioBuffer;
     const decodeAudioData = vi.fn(async () => buffer);
     const result = await loadRacingSamples({ decodeAudioData } as unknown as BaseAudioContext, new AbortController().signal);
-    expect(result).toEqual({ engine: buffer, tyres: buffer });
-    expect(fetch.mock.calls.map(([url]) => url)).toEqual(['/audio/engine-loop.wav', '/audio/tire-squeal.wav']);
-    expect(decodeAudioData).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ v10: buffer, v8: buffer, tyres: buffer });
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual(['/audio/formula-v10.wav', '/audio/formula-v8.wav', '/audio/tire-squeal.wav']);
+    expect(decodeAudioData).toHaveBeenCalledTimes(3);
   });
   it('reports missing samples clearly', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 404 })));

@@ -22,7 +22,7 @@ function audioFixture(withSamples = true) {
   const panners: ReturnType<typeof createPanner>[] = [];
   function createGain() { return { ...node(), gain: parameter() }; }
   function createPanner() { return { ...node(), pan: parameter() }; }
-  const samples = { engine: { duration: 0.824 } as AudioBuffer, tyres: { duration: 2.96 } as AudioBuffer };
+  const samples = { v10: { duration: 4.2 } as AudioBuffer, v8: { duration: 1.008 } as AudioBuffer, tyres: { duration: 2.96 } as AudioBuffer };
   const context = {
     state: 'suspended', sampleRate: 8000, currentTime: 0, destination: node(),
     createGain: () => { const gain = createGain(); gains.push(gain); return gain; },
@@ -32,7 +32,7 @@ function audioFixture(withSamples = true) {
     createOscillator: () => { const voice = oscillator(); oscillators.push(voice); return voice; },
     createBuffer: (_channels: number, length: number) => ({ getChannelData: () => new Float32Array(length) }),
     createBufferSource: () => { const source = bufferSource(); sources.push(source); return source; },
-    decodeAudioData: vi.fn(async () => samples.engine),
+    decodeAudioData: vi.fn(async () => samples.v10),
     resume: vi.fn(async () => { context.state = 'running'; }),
     suspend: vi.fn(async () => { context.state = 'suspended'; }),
     close: vi.fn(async () => { context.state = 'closed'; }),
@@ -48,17 +48,37 @@ function frame(): RaceSoundState {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('recorded multi-car race audio', () => {
+  it('tracks rev rises, upshift drops and braking downshift blips on each recorded engine', () => {
+    const { sound, sources, samples, context, gains } = audioFixture();
+    const state = frame();
+    const update = (rpm: number, gear: number, braking = false) => {
+      context.currentTime += 0.1;
+      sound.update({ ...state, clock: context.currentTime, cars: [{ ...state.cars[0], rpm, gear, braking }] });
+      return sources.find((source) => source.buffer === samples.v10)!.playbackRate.value;
+    };
+    const low = update(8000, 1);
+    const high = update(14400, 1);
+    expect(high / low).toBeCloseTo(1.8);
+    const shifted = update(10300, 2);
+    expect(shifted).toBeLessThan(high * 0.75);
+    const cut = gains.find((gain) => gain.gain.setValueAtTime.mock.calls.some(([value]) => value === 0.16))!;
+    expect(cut.gain.linearRampToValueAtTime).toHaveBeenCalledWith(1, context.currentTime + 0.065);
+    update(9800, 2, true);
+    const blip = update(13900, 1, true);
+    expect(blip).toBeGreaterThan(13900 / 6150 * 1.006);
+    sound.dispose();
+  });
   it('starts silent and creates independent sample-based engines for every car', async () => {
     const { sound, context, sources, oscillators, panners, samples, gains } = audioFixture();
     expect(gains[0].gain.value).toBe(0);
     expect(sources).toHaveLength(1); // Shared air/mechanical texture, not an engine.
     sound.setVolume(0.5); await sound.setActive(true);
     sound.update(frame());
-    const engineLoops = sources.filter((source) => source.buffer === samples.engine);
-    expect(engineLoops).toHaveLength(8);
+    const engineLoops = sources.filter((source) => source.buffer === samples.v10 || source.buffer === samples.v8);
+    expect(engineLoops).toHaveLength(4);
     expect(sources.filter((source) => source.buffer === samples.tyres)).toHaveLength(4);
-    expect(new Set(engineLoops.filter((_, index) => index % 2 === 0).map((source) => source.playbackRate.value)).size).toBe(4);
-    expect(new Set(engineLoops.filter((_, index) => index % 2 === 0).map((source) => source.start.mock.calls[0][1])).size).toBe(4);
+    expect(new Set(engineLoops.map((source) => source.playbackRate.value)).size).toBe(4);
+    expect(new Set(engineLoops.map((source) => source.start.mock.calls[0][1])).size).toBe(4);
     expect(panners).toHaveLength(4);
     expect(panners[0].pan.value).toBe(0);
     expect(panners[3].pan.value).toBeGreaterThan(panners[1].pan.value);
@@ -81,7 +101,7 @@ describe('recorded multi-car race audio', () => {
     const secondOutput = gains.find((gain) => gain.connect.mock.calls.some(([destination]) => destination === panners[1]))!;
     expect(secondOutput.gain.value).toBe(0);
     sound.update({ ...state, clock: 1.3, cars: state.cars.slice(0, 1) });
-    expect(sources.filter((source) => source.stop.mock.calls.length > 0)).toHaveLength(9);
+    expect(sources.filter((source) => source.stop.mock.calls.length > 0)).toHaveLength(6);
     sound.dispose();
   });
 

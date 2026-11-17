@@ -5,6 +5,7 @@ import type { SceneCache } from './race-renderer';
 import type { RaceViewState } from '../../adapters/race-view';
 import { formatRaceTime } from '../../adapters/race-view';
 import type { AudioPerspective } from '../../audio/race-sound-state';
+import { FORMULA_REDLINE } from '../../adapters/formula-powertrain';
 
 interface RaceSceneProps {
   state: RaceViewState;
@@ -88,7 +89,7 @@ export function RaceScene({ state, playing, showLabels, onTogglePause, onNitro, 
       {state.phase === 'running' && state.clock < 1.2 && playing && <div className="lights-out">GO!</div>}
       {state.phase === 'ready' && <div className="grid-ready"><span>THE GRID IS SET</span><strong>Find your racing line.</strong><p>Automatic racing · N for nitro</p></div>}
       {state.phase === 'finished' && <div className="finish-overlay"><div className="chequered-strip" /><span>CHEQUERED FLAG</span><strong>{player?.status === 'dnf' ? 'DID NOT FINISH' : player?.position === 1 ? 'VICTORY!' : `POSITION ${player?.position ?? '—'}`}</strong><p>{player?.status === 'dnf' ? player.statusReason : `Finish time ${formatRaceTime(player?.finishTime ?? state.clock)}`}</p><small>Restart below to take another run.</small></div>}
-      <div className="cockpit-hud" aria-label="Driving instruments"><div className="rev-lights">{Array.from({ length: 18 }, (_, index) => <i key={index} className={`${index < rpm / 10000 * 18 ? 'on' : ''} ${index > 13 ? 'redline' : ''}`} />)}</div><div className="speedometer"><strong>{speed === undefined ? '—' : Math.round(speed)}</strong><span>KM/H</span><div className="gear"><small>GEAR</small><b>{player?.gear || 'N'}</b></div></div><div className="rpm-line"><span>{rpm ? `${Math.round(rpm / 100) * 100} RPM` : 'TELEMETRY PENDING'}</span><span>{player?.boosting ? 'NITRO ACTIVE' : player?.braking ? 'BRAKING' : 'AUTO DRIVE'}</span></div></div>
+      <div className="cockpit-hud" aria-label="Driving instruments"><div className="rev-lights">{Array.from({ length: 18 }, (_, index) => <i key={index} className={`${index < rpm / FORMULA_REDLINE * 18 ? 'on' : ''} ${index > 13 ? 'redline' : ''}`} />)}</div><div className="speedometer"><strong>{speed === undefined ? '—' : Math.round(speed)}</strong><span>KM/H</span><div className="gear"><small>GEAR</small><b>{player?.gear || 'N'}</b></div></div><div className="rpm-line"><span>{rpm ? `${Math.round(rpm / 100) * 100} RPM` : 'TELEMETRY PENDING'}</span><span>{player?.boosting ? 'NITRO ACTIVE' : player?.braking ? 'BRAKING' : 'AUTO DRIVE'}</span></div></div>
       {player?.boosting && <div className="boost-vignette" aria-hidden="true" />}
       <button className="scene-nitro" disabled={!nitroAvailable} onClick={onNitro}><span>N</span><strong>NITRO</strong><small>{player?.nitro ?? 0} charges</small></button>
     </div>

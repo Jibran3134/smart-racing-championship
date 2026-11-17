@@ -1,15 +1,36 @@
 Smart Racing Championship - audio attribution
 
-engine-loop.wav
-Work: racing car engine sound loops (loop_0.wav)
-Author: domasx2
-Source: https://opengameart.org/content/racing-car-engine-sound-loops
-Original file: https://opengameart.org/sites/default/files/loop_0.wav
-License: CC0 1.0 Universal
+formula-v10.wav
+Source work: renault-v10.wav
+Authors: Speed Dreams / TORCS sound contributors. The individual recording
+creator is not specified per file in the upstream manifest.
+Upstream credits include Christos Dimitrakakis and Christophe Macours for
+sound samples, and Jan Ullmann / AudioBerlin for reworking most common sounds.
+Source: https://forge.a-lec.org/speed-dreams/speed-dreams-data/src/branch/main/data/data/sound/renault-v10.wav
+License declaration: https://forge.a-lec.org/speed-dreams/speed-dreams-data/src/branch/main/README.md#license
+License: Free Art License 1.3 (upstream default for non-functional assets)
+https://artlibre.org/licence/lal/en/
+Bundled text: licenses/FAL-1.3.txt
+Bundled upstream declaration: licenses/Speed-Dreams-README.md
+This audio adaptation remains under the Free Art License 1.3.
+Original SHA256:
+bb2b98459231bc4825cc994af9ac521ea3400fe048e3133f82be0f69c2483edf
+
+formula-v8.wav
+Source work: v8_formula.wav (Speed Dreams formula-racing loop)
+Recording: Heigh-hoo, Japanese GT V8 fly-by
+https://freesound.org/people/Heigh-hoo/sounds/128611/
+Formula-loop adaptation: June Ravenmoon, 29 November 2024
+Source: https://forge.a-lec.org/speed-dreams/speed-dreams-data/src/branch/main/data/data/sound/v8_formula.wav
+License: CC0, as specified in the upstream SoundCredits.txt:
+https://forge.a-lec.org/speed-dreams/speed-dreams-data/src/branch/main/data/data/sound/SoundCredits.txt
 https://creativecommons.org/publicdomain/zero/1.0/
-The author states that this version was remade from a public-domain recording.
-Changes: DC removed, seamless loop crossfade, mono PCM16 normalization.
-Original SHA256: 69d74b106509037ce547429e4c3f9ae906b0fffe88d0bb8b3b5a8b0cfc239048
+Original SHA256:
+5f2b89b0ffb99aca706c9a15acbc80e8875037591de9a756d1640cb72242aa50
+
+Changes to both formula loops, 17 November 2026: removed DC offset,
+normalized RMS/peak and applied an 8ms seam crossfade. Mono PCM16 44.1kHz.
+These are formula-racing simulator loops, not distinct F1 team recordings.
 
 tire-squeal.wav
 Work: Car tire squeal skid loop (tires_squal_loop.wav)
