@@ -14,6 +14,7 @@ export function RaceSession({ driver, showLabels, onViewResults }: { driver: Rac
   const complete = state?.phase === 'finished';
   const demo = driver.kind === 'demo';
   const nitroAvailable = !replay && Boolean(driver.activateNitro) && control.playing && state?.phase === 'running' && Boolean(player && player.status === 'racing' && player.nitro > 0 && !player.boosting);
+  const startRace = () => { void sound.enableForRace(); control.play(); };
 
   if (!state) return <section className="panel integration-state" role="alert"><h2>Race state unavailable</h2><p>{control.error}</p><button className="button secondary" onClick={control.restart}>Retry race state</button></section>;
 
@@ -34,9 +35,10 @@ export function RaceSession({ driver, showLabels, onViewResults }: { driver: Rac
           <div className="panel-heading"><div><p className="eyebrow">RACE CONTROL</p><h2>{state.track.name}</h2></div><span className="tag muted-tag">{replay ? 'Sample replay' : demo ? 'Driving demo' : 'Live engine'}</span></div>
           <div className="race-audio-controls"><button className={`sound-toggle ${sound.enabled ? 'sound-on' : ''}`} aria-pressed={sound.enabled} onClick={() => { void sound.toggle(); }}><span aria-hidden="true">{sound.enabled ? '◖))' : '◖×'}</span>{sound.enabled ? 'Mute sound' : 'Enable sound'}</button><label htmlFor="race-volume">Master volume</label><input id="race-volume" type="range" min={0} max={100} value={sound.volume} onChange={(event) => sound.setVolume(Number(event.target.value))} /><output htmlFor="race-volume">{sound.volume}%</output><span className="audio-caption">Engine · tyres · boost · race cues</span></div>
           {sound.error && <p className="audio-error" role="status">{sound.error} Racing is available without sound.</p>}
-          <RaceScene state={state} playing={control.playing} showLabels={showLabels} onTogglePause={() => { if (!complete && !control.error) { if (control.playing) control.pause(); else control.play(); } }} onNitro={control.activateNitro} nitroAvailable={nitroAvailable} onToggleSound={() => { void sound.toggle(); }} />
+          {!sound.enabled && !sound.error && state.phase === 'ready' && <p className="audio-start-hint">Sound starts with the race. Use M or the sound button to mute.</p>}
+          <RaceScene state={state} playing={control.playing} showLabels={showLabels} onTogglePause={() => { if (!complete && !control.error) { if (control.playing) control.pause(); else startRace(); } }} onNitro={control.activateNitro} nitroAvailable={nitroAvailable} onToggleSound={() => { void sound.toggle(); }} />
           <div className="playback-controls">
-            <button className="button primary" disabled={complete || Boolean(control.error)} onClick={control.playing ? control.pause : control.play}>{control.playing ? 'Pause session' : state.phase === 'ready' ? replay ? 'Play preview' : 'Start race' : 'Resume session'}</button>
+            <button className="button primary" disabled={complete || Boolean(control.error)} onClick={control.playing ? control.pause : startRace}>{control.playing ? 'Pause session' : state.phase === 'ready' ? replay ? 'Play preview' : 'Start race' : 'Resume session'}</button>
             <button className="button secondary" onClick={control.restart}>Restart session</button>
             {complete && <button className="button primary" onClick={onViewResults}>{replay || demo ? 'View example dashboard' : 'View race results'}</button>}
           </div>

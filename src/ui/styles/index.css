@@ -270,6 +270,7 @@ input[type="checkbox"] { accent-color: #c5f568; }
 .race-audio-controls > output { color: #d8e7c8; font: 10px Consolas, monospace; min-width: 30px; }
 .audio-caption { margin-left: auto; color: #a5b5a7; font-size: 9px; }
 .audio-error { padding: 12px 18px; color: #eac4a5; background: #352b20; font-size: 11px; }
+.audio-start-hint { padding: 10px 18px; color: #bfd3ac; background: #18291e; border-bottom: 1px solid #34443c; font-size: 10px; line-height: 1.8; }
 .race-scene { background: #0e191e; overflow: hidden; position: relative; }
 .scene-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #36483f; background: #142027; }
 .scene-toolbar [role="group"] { display: flex; gap: 3px; border: 1px solid #40564b; border-radius: 4px; overflow: hidden; }

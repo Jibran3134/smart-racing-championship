@@ -4,7 +4,7 @@ Requested 17 November 2026. The selected control style is **route-based automati
 
 ## Try it
 
-Run `npm run dev`, open **Race**, choose **Start driving demo**, optionally choose **Enable sound**, then **Start race**. After the start-light countdown, cars accelerate and brake automatically along the supplied circuit route.
+Run `npm run dev`, open **Race**, choose **Start driving demo**, then **Start race**. Sound starts from that same click; a separate Enable sound click is not required. After the start-light countdown, cars accelerate and brake automatically along the supplied circuit route.
 
 | Control | Action |
 | --- | --- |
@@ -48,7 +48,7 @@ This is a 2D route-racing model with arcade acceleration/corner braking. It does
 
 `RacingAudio` synthesizes engine harmonics/exhaust, wind, tyre scrub, turbo/boost, gear cuts, countdown/go tones, checkpoint cues and a finish fanfare. It downloads no audio assets and requires no additional package. Pitch follows RPM; noise/envelopes follow speed, braking and boost.
 
-Audio is instantiated/resumed only after **Enable sound** or the sound hotkey. Master volume defaults to 35%. Pause/mute suspend the audio context; leaving the race stops/disconnects sources, clears the fanfare timer and closes the context. Unsupported/blocked audio produces a status message while racing remains usable. Implementation follows [MDN's Web Audio best practices](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Best_practices) and [AudioContext resume behavior](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/resume).
+Audio is instantiated/resumed from the **Start race** gesture, **Enable sound**, or the sound hotkey. An explicit mute is preserved through pause/resume and restart within the session. Master volume defaults to 35%. Pause/mute suspend the audio context; leaving the race stops/disconnects sources, clears the fanfare timer and closes the context. Unsupported/blocked audio produces a status message while racing remains usable. Implementation follows [MDN's Web Audio best practices](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Best_practices) and [AudioContext resume behavior](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/resume).
 
 ## Verification
 
