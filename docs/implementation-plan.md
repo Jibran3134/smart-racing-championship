@@ -6,6 +6,8 @@ Scope: your responsibilities in `DAA Project division.docx`. This plan starts fr
 
 **Iteration 5 flow update, 17 November:** configurable race setup, production resource/provider handoffs, actual completed-session history/exports and stronger preset validation are delivered. See [Iteration 5 status](iteration-5-status.md). This extends the unfinished integration work without marking the full championship or shared contracts complete.
 
+**Iteration 6 Lab update, 17 November:** the unified graph/array/table trace player, real exploration/heap/event adapters, configurable inputs and trace import/export are implemented. Remaining algorithms can connect through the documented adapter interface; they are not replaced by UI simulations. See [Iteration 6 status](iteration-6-status.md).
+
 ## Starting point and working rules
 
 **Progress update, 17 November:** the first foundation implementation is delivered. See [Iteration 1 status](iteration-1-status.md) for implemented features, verification and remaining shared-contract/engine dependencies. The starting-point bullets below describe the baseline before this work.
