@@ -13,11 +13,14 @@ import type { PresetProvider } from '../../adapters/preset-view';
 const limits = { maxRoutes: 4, maxEdges: 14, maxExpansions: 2000 };
 
 export function TrackExplorer({ showLabels, track: sharedTrack, onChangeRoad, onRestoreRoads, presetProvider }: { showLabels: boolean; track?: TrackMapData; onChangeRoad?: (id: string, status: MapRoad['status']) => void; onRestoreRoads?: () => void; presetProvider?: PresetProvider }) {
-  const [selected, setSelected] = useState(0);
-  const [source, setSource] = useState(0);
-  const [target, setTarget] = useState(6);
+  const initialTrack = sharedTrack ?? previewTrack;
+  const defaultStart = initialTrack.vertices.find((vertex) => vertex.kind === 'start')?.id ?? initialTrack.vertices[0].id;
+  const [selected, setSelected] = useState(defaultStart);
+  const [source, setSource] = useState(defaultStart);
+  const [target, setTarget] = useState(initialTrack.vertices.find((vertex) => vertex.checkpointOrder === 6)?.id ?? initialTrack.vertices.at(-1)!.id);
   const [routeIndex, setRouteIndex] = useState(0);
-  const [roadId, setRoadId] = useState('road-0');
+  const [roadId, setRoadId] = useState(initialTrack.roads[0].id);
+  const [originalRoads] = useState(() => new Map(initialTrack.roads.map((road) => [road.id, road.status])));
   const [overrides, setOverrides] = useState<Record<string, MapRoad['status']>>({});
   const track = useMemo(() => sharedTrack ?? ({ ...previewTrack, roads: previewTrack.roads.map((road) => ({ ...road, status: overrides[road.id] ?? road.status })) }), [sharedTrack, overrides]);
   const changeRoad = (id: string, status: MapRoad['status']) => {
@@ -53,7 +56,7 @@ export function TrackExplorer({ showLabels, track: sharedTrack, onChangeRoad, on
       <label className="field-label" htmlFor="inspect-vertex">Jump to vertex</label><select id="inspect-vertex" value={selected} onChange={(event) => setSelected(Number(event.target.value))}>{options}</select>
       <h3 className="inspector-section">Graph analysis</h3><dl className="details-list"><div><dt>Connected components</dt><dd>{analysis.components.length}</dd></div><div><dt>Reachable cycle</dt><dd>{analysis.depth.hasCycle ? 'Yes' : 'No'}</dd></div><div><dt>Arrival-relative dead ends</dt><dd>{analysis.deadEnds.length}</dd></div><div><dt>BFS expanded vertices</dt><dd>{analysis.breadth.counters.expandedVertices}</dd></div><div><dt>BFS examined edges</dt><dd>{analysis.breadth.counters.examinedEdges}</dd></div></dl>
       <p className="small-text">Dead-end IDs: {analysis.deadEnds.join(', ') || 'none'}. This test excludes each vertex’s DFS arrival edge; mandatory vertices are excluded.</p>
-      <h3 className="inspector-section">Try a road change</h3><label className="field-label" htmlFor="road-selection">Road</label><select id="road-selection" value={roadId} onChange={(event) => setRoadId(event.target.value)}>{track.roads.map((item) => <option key={item.id} value={item.id}>{item.id} ({item.status})</option>)}</select><button className="button secondary road-toggle" onClick={() => { const original = previewTrack.roads.find((item) => item.id === roadId)!; changeRoad(roadId, road.status === 'blocked' ? original.status === 'blocked' ? 'open' : original.status : 'blocked'); }}>{road.status === 'blocked' ? 'Reopen selected road' : 'Block selected road'}</button><button className="text-button" onClick={() => { if (onRestoreRoads) onRestoreRoads(); else setOverrides({}); setRouteIndex(0); }}>Restore road layout</button>
+      <h3 className="inspector-section">Try a road change</h3><label className="field-label" htmlFor="road-selection">Road</label><select id="road-selection" value={roadId} onChange={(event) => setRoadId(event.target.value)}>{track.roads.map((item) => <option key={item.id} value={item.id}>{item.id} ({item.status})</option>)}</select><button className="button secondary road-toggle" onClick={() => { const original = originalRoads.get(roadId) ?? 'open'; changeRoad(roadId, road.status === 'blocked' ? original === 'blocked' ? 'open' : original : 'blocked'); }}>{road.status === 'blocked' ? 'Reopen selected road' : 'Block selected road'}</button><button className="text-button" onClick={() => { if (onRestoreRoads) onRestoreRoads(); else setOverrides({}); setRouteIndex(0); }}>Restore road layout</button>
     </aside></div>
     <PresetComparison track={track} source={source} target={target} showLabels={showLabels} examples={routes} provider={presetProvider} />
   </>;

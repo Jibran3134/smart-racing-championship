@@ -356,6 +356,38 @@ input[type="checkbox"] { accent-color: #c5f568; }
 @media (max-width: 480px) { .race-telemetry { grid-template-columns: repeat(2, minmax(0, 1fr)); } .race-sidebar, .podium-grid { grid-template-columns: 1fr; } .podium-card { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center; } .podium-card h2 { margin: 0; } .podium-place { grid-row: span 2; margin: 0; text-align: right; } .standings-controls { padding: 18px; gap: 15px; } .table-scroll th, .table-scroll td { padding: 16px; } .preview-banner { padding: 15px; } .race-events li { gap: 12px; } }
 .reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation: none !important; transition: none !important; }
 .experiment-import { position: relative; overflow: hidden; }
+.race-setup-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; margin-bottom: 22px; }
+.race-setup-layout > *, .resource-plan { min-width: 0; }
+.race-setup-fields { padding: 20px; }
+.race-setup-fields label, .setup-loadout label, .session-summary label { display: block; color: #bfceb9; font-size: 11px; margin-bottom: 10px; }
+.race-setup-fields select, .setup-loadout select, .session-summary select { display: block; max-width: 100%; width: 100%; background: #17261e; color: #edf7e4; border: 1px solid #4d6449; border-radius: 5px; padding: 11px; font-size: 12px; }
+.race-setup-fields p { color: #bbccb5; font-size: 12px; line-height: 1.8; margin: 15px 0 0; }
+.setup-loadout { padding: 0; margin: 20px 0; border: 0; }
+.setup-loadout select { margin-bottom: 20px; }
+.setup-loadout .setup-events { display: flex; gap: 10px; align-items: center; }
+.setup-events input, .resource-plan input { accent-color: #d7ff59; }
+.resource-advice { margin-bottom: 24px; }
+.resource-plan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; padding: 20px; }
+.resource-plan { border: 1px solid #52664a; background: #17251d; border-radius: 6px; padding: 18px; cursor: pointer; }
+.resource-plan:has(input:checked) { border-color: #d7ff59; }
+.resource-plan strong { margin-left: 10px; color: #e4f3db; }
+.resource-plan > span, .resource-plan p { display: block; font-size: 11px; line-height: 1.8; color: #c1d0b9; margin: 10px 0 0; overflow-wrap: anywhere; }
+.infeasible-plan { opacity: 0.6; cursor: not-allowed; }
+.session-results { margin-bottom: 28px; }
+.session-championship-pending { padding: 24px; }
+.session-championship-pending .state-mark { display: none; }
+.session-championship-pending h2 { font-size: 20px; }
+.session-championship-pending p { color: #bfceb9; font-size: 12px; line-height: 1.8; }
+.session-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: 20px; color: #bfceb9; font-size: 11px; }
+.session-summary label { min-width: 0; max-width: 100%; margin: 0; }
+.session-picker { min-width: 0; max-width: 100%; }
+.session-summary select { margin-top: 9px; }
+.session-event-log { padding: 20px; border-top: 1px solid #34443c; }
+.session-event-log ol { list-style: none; padding: 0; max-height: 280px; overflow: auto; }
+.session-event-log li { display: flex; gap: 15px; padding: 10px 0; color: #c6d7bb; font-size: 11px; }
+.session-event-log time { flex-shrink: 0; font-family: Consolas, monospace; }
+@media (max-width: 850px) { .race-setup-layout { grid-template-columns: 1fr; } }
+@media (max-width: 500px) { .resource-plan-grid { grid-template-columns: 1fr; } }
 .experiment-import input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
 .experiment-import:focus-within { outline: 2px solid #d7ff59; outline-offset: 3px; }
 .experiment-command { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; background: #10201a; color: #d7ff59; font-size: 12px; }

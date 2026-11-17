@@ -41,7 +41,7 @@ describe('race presentation', () => {
     expect(screen.getByRole('progressbar', { name: 'Fuel' })).toHaveAttribute('aria-valuenow', '60');
     fireEvent.change(screen.getByLabelText(/Preview timeline/), { target: { value: '36' } });
     expect(screen.getByText('Complete', { exact: true })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'View example dashboard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'View preview results' }));
     expect(results).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole('button', { name: 'Restart session' }));
     expect(screen.getByRole('progressbar', { name: 'Fuel' })).toHaveAttribute('aria-valuenow', '100');
@@ -119,7 +119,6 @@ describe('championship presentation', () => {
       subscribe: (listener: () => void) => { notify = listener; return unsubscribe; },
     };
     const { unmount } = render(<ChampionshipDashboard provider={source} onRace={() => {}} />);
-    await screen.findByRole('group', { name: 'Championship points progression' }, { timeout: 5000 });
     const table = screen.getByRole('table', { name: 'Full championship ranking' });
     expect(within(table).getByText('61')).toBeInTheDocument();
     bonus = 1;

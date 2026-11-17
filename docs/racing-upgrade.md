@@ -34,7 +34,7 @@ Keyboard shortcuts apply when the racing viewport has focus: click/tap the circu
 
 The draft setup in `src/ui/fixtures/driving-demo.ts` explicitly supplies two laps, three starting nitro charges, a four-second 1.5× boost, 2× boost fuel use, fuel capacity 100, difficulty-scaled consumption, acceleration/braking, service/time limits and deterministic event inputs. These are demonstration tunings, not jointly frozen course configuration. The rivals use fixed routes with different deterministic pace values. The three official opponent strategies, route optimization, resource recommendation and real championship progression remain integration work.
 
-The old `recorded-race.ts` is retained as a presentation test fixture; it is no longer the app's driving entry point. Example dashboard data remains an independent, labelled sample season. Driving-demo results are not converted into fabricated championship points.
+The old `recorded-race.ts` is retained as a presentation test fixture; it is no longer the app's driving entry point. Example dashboard data remains an independent, labelled sample season. Driving-demo results are now captured as actual session records with CSV/JSON exports; they are not converted into fabricated championship points. See [Iteration 5](iteration-5-status.md).
 
 ## Racing scene
 

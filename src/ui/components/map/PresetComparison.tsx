@@ -3,6 +3,7 @@ import { routePresets } from '../../adapters/preset-view';
 import type { PresetProvider } from '../../adapters/preset-view';
 import type { TrackMapData } from './map-model';
 import { TrackMap } from './TrackMap';
+import { validatePresetRoutes } from '../../adapters/route-validation';
 
 interface ComparisonProps {
   track: TrackMapData;
@@ -19,13 +20,7 @@ export function PresetComparison({ track, source, target, showLabels, examples, 
     if (!provider) return { routes: [], error: null };
     try {
       const routes = provider.compare({ source, target, track });
-      for (const route of routes) {
-        if (route.status !== 'available') continue;
-        if (route.vertices[0] !== source || route.vertices.at(-1) !== target) throw new Error('Comparison paths do not match the selected endpoints.');
-        if (route.edges.some((id) => !track.roads.some((road) => road.id === id && road.status !== 'blocked'))) throw new Error('Comparison contains a missing or blocked road.');
-        if (!route.metrics || Object.values(route.metrics).some((value) => !Number.isFinite(value) || value < 0)) throw new Error('Comparison contains invalid route metrics.');
-        if (!route.weights || Object.values(route.weights).some((value) => !Number.isFinite(value) || value < 0)) throw new Error('Comparison requires non-negative preset weights.');
-      }
+      validatePresetRoutes(track, source, target, routes);
       return { routes, error: null };
     } catch (error) { return { routes: [], error: error instanceof Error ? error.message : 'Route comparison unavailable.' }; }
   }, [provider, source, target, track]);
@@ -40,12 +35,14 @@ export function PresetComparison({ track, source, target, showLabels, examples, 
       const example = !provider && showExamples && examples.length ? examples[index % examples.length] : undefined;
       const usable = actual?.status === 'available' ? actual : undefined;
       const path = usable ?? example;
+      const matching = usable && reading.routes.find((route) => route.preset !== preset.id && route.status === 'available' && route.edges.length === usable.edges.length && route.edges.every((edge, at) => edge === usable.edges[at]));
       return <article key={preset.id} className={`panel preset-card preset-${preset.id}`}>
         <div className="panel-heading"><h3>{preset.label}</h3><span className="preset-color" /></div>
         <TrackMap track={track} showLabels={showLabels} highlightedRoads={path?.edges} accessibleName={`${preset.label} route comparison map`} showControls={false} />
         <div className="preset-details"><p>{preset.emphasis}</p><p className="small-text">{actual?.status === 'unreachable' ? 'No legal route reaches the destination.' : actual ? `${actual.edges.length} edges · ${actual.vertices.join(' → ')}` : example ? `Illustrative path · ${example.edges.length} edges` : 'Awaiting planner results.'}</p>
           <dl><div><dt>Distance</dt><dd>{usable?.metrics?.distance ?? '—'}</dd></div><div><dt>Estimated time</dt><dd>{usable?.metrics ? `${usable.metrics.time} s` : '—'}</dd></div><div><dt>Optimized scalar cost</dt><dd>{usable?.metrics?.cost ?? '—'}</dd></div></dl>
           {usable?.weights && <p className="weights-caption">Weights: distance {usable.weights.distance}, time {usable.weights.time}, fuel {usable.weights.fuel}, difficulty {usable.weights.difficulty}, obstacle {usable.weights.obstacle}.</p>}
+          {matching && <p className="weights-caption">Same path as {routePresets.find((entry) => entry.id === matching.preset)?.label}; the objective weights may still differ.</p>}
         </div>
       </article>;
     })}</div>

@@ -4,6 +4,8 @@ Scope: your responsibilities in `DAA Project division.docx`. This plan starts fr
 
 **Iteration 4 evidence update, 17 November:** experiments 1/4, shared exports, the measured-results Lab and assigned report draft are delivered. The default studies produced 225 raw measurements and passed 26 correctness checks. Final integration, joint review, report PDF and submission packaging remain pending. See [Iteration 4 status](iteration-4-status.md).
 
+**Iteration 5 flow update, 17 November:** configurable race setup, production resource/provider handoffs, actual completed-session history/exports and stronger preset validation are delivered. See [Iteration 5 status](iteration-5-status.md). This extends the unfinished integration work without marking the full championship or shared contracts complete.
+
 ## Starting point and working rules
 
 **Progress update, 17 November:** the first foundation implementation is delivered. See [Iteration 1 status](iteration-1-status.md) for implemented features, verification and remaining shared-contract/engine dependencies. The starting-point bullets below describe the baseline before this work.

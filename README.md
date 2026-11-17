@@ -13,7 +13,7 @@ npm run dev
 
 Open the local URL printed by Vite. On PowerShell, use `npm.cmd` if your execution policy prevents `npm.ps1` from running.
 
-To race: **Race > Start driving demo > Start race**. Sound starts with the race. Click the circuit to use **N** for nitro, **Space** for pause, **C** for camera and **M** for sound. Follow/circuit cameras, fullscreen, volume and touch-friendly nitro controls are available on the racing screen. See the [audio mix and credits](docs/audio-mix.md).
+To race: **Race > configure laps/nitro/events > Start driving demo > Start race**. After completion, **View race results** opens the actual session with CSV/JSON exports. Sound starts with the race. Click the circuit to use **N** for nitro, **Space** for pause, **C** for camera and **M** for sound. Follow/circuit cameras, fullscreen, volume and touch-friendly nitro controls are available on the racing screen. See the [audio mix and credits](docs/audio-mix.md).
 
 ## Commands
 
@@ -78,3 +78,5 @@ No backend, database, algorithm library, or extra Canvas/SVG package is needed f
 ## Experiments and report evidence
 
 Run `npm run experiments -- --experiment all`, then open **Algorithm Lab > Experiment results** and import the generated JSON from `experiments/results/`. Both studies reuse production core functions and include warm-ups, five measured runs, counters and correctness checks. Export raw/summary CSV or JSON from the viewer. See [the full procedure](docs/experiments.md) and [Iteration 4 status](docs/iteration-4-status.md). Generated measurements stay local and must be explicitly included in the final submission.
+
+The [Iteration 5 race flow](docs/iteration-5-status.md) adds circuit/resource-provider handoffs, preparation cancellation and actual session history. See [the integration contract](docs/interfaces/race-setup-and-results.md) for connecting production modules.

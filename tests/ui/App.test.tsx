@@ -31,7 +31,7 @@ describe('application foundation', () => {
     expect(screen.getByRole('status')).toHaveTextContent('No route reaches');
   });
 
-  it('navigates across five screens and preserves race mode', () => {
+  it('navigates across five screens and preserves race mode', async () => {
     render(<App />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Every route.');
     const navigation = within(screen.getByRole('navigation', { name: 'Main navigation' }));
@@ -43,7 +43,7 @@ describe('application foundation', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Championship Dashboard');
     fireEvent.click(screen.getByRole('button', { name: /Championship setup/ }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Championship');
-    expect(screen.getByRole('button', { name: 'Start race' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Start race' })).toBeDisabled();
     fireEvent.click(navigation.getByRole('button', { name: /Overview/ }));
     fireEvent.click(screen.getByRole('button', { name: /02 \/ QUICK RACE/ }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Quick Race');

@@ -9,7 +9,7 @@ import type { TrackMapData } from '../../components/map/map-model';
 
 export function SearchLab({ showLabels, track = previewTrack }: { showLabels: boolean; track?: TrackMapData }) {
   const [algorithm, setAlgorithm] = useState<'bfs' | 'dfs'>('bfs');
-  const [source, setSource] = useState(0);
+  const [source, setSource] = useState(() => track.vertices.find((vertex) => vertex.kind === 'start')?.id ?? track.vertices[0].id);
   const steps = useMemo(() => {
     const trace: ExplorationStep[] = [];
     const graph = explorationAdapter(track);

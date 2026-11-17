@@ -16,6 +16,8 @@ The race driver owns simulation state and exposes start/step/getState/restart/ni
 
 The dashboard and preset comparison accept providers. Ranking/top-k and optimized scalar route metrics belong to those providers rather than being recomputed in components. Labelled presentation fixtures help develop the interface but do not count as integrated championship results or experimental measurements. See [the presentation contract](../interfaces/game-presentation.md).
 
+Iteration 5 adds circuit/loadout setup with abortable driver preparation and a resource-provider handoff. Only supported presets and feasible resource candidates can be selected, and changed inputs invalidate the previous plan. Completed sessions are copied into a ten-entry in-memory history, preserving engine order, finish times, DNF reasons and resources without awarding points. Their CSV/JSON exports now describe the session actually run; a separate example season is never opened automatically. See [the setup/results contract](../interfaces/race-setup-and-results.md).
+
 ## 5. Assigned algorithms: design, correctness and complexity
 
 ### Breadth-first search
@@ -97,6 +99,8 @@ Trace playback stores deterministic snapshots and counters. Reset/input changes 
 Existing tests cover heap extraction against a reference ordering; singleton/empty/tied cases; directed/undirected traversal, cycles, components and dead ends; minimum-edge BFS versus weighted-route intuition; deterministic traces; event time/priority/sequence ties, cancellation, invalid targets and independent expiries; route-race laps, resources and time limits; UI playback, keyboard isolation and cleanup.
 
 Iteration 4 adds seeded dataset reproducibility, independent traversal certificates, real event-processor expiry checks, exact queue phase counters, aggregate statistics, complete/duplicate run validation, CSV quoting/formula handling and UI import/export/error behavior. Run `npm run typecheck`, `npm run lint`, `npm test` and `npm run build`. Browser review additionally loads actual measured files and checks chart filters, downloads, invalid-file retention and narrow layouts. State the final checked commit and test count at report freeze rather than treating this draft as permanent evidence of later changes.
+
+Iteration 5 additionally checks complete configured two/three-lap runs, resource-plan invalidation, preparation cancellation, actual result capture/exports, navigation deduplication, restart history, nonzero circuit IDs and preset road direction/continuity. Browser tests exercised both development and production builds; accelerated test frame timestamps shortened race QA while retaining the engine's fixed simulation steps. No production fast-forward control or fabricated results were added.
 
 ## 8. Experiments 1 and 4
 

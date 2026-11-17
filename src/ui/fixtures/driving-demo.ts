@@ -4,8 +4,12 @@ import type { RaceDriver, RacerView } from '../adapters/race-view';
 import { previewTrack } from './preview-track';
 import { formulaPowertrain } from '../adapters/formula-powertrain';
 
+export interface DrivingDemoOptions { laps?: number; initialNitro?: number; eventsEnabled?: boolean }
+
 /** Draft demonstration setup. Tunings are explicit, not frozen shared config. */
-export function drivingDemoSetup(): DrivingSetup {
+export function drivingDemoSetup(options: DrivingDemoOptions = {}): DrivingSetup {
+  const { laps = 2, initialNitro = 3, eventsEnabled = true } = options;
+  if (![2, 3].includes(laps) || !Number.isSafeInteger(initialNitro) || initialNitro < 0 || initialNitro > 3 || typeof eventsEnabled !== 'boolean') throw new Error('Invalid driving-demo configuration.');
   const route = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0];
   return {
     start: 0,
@@ -22,18 +26,18 @@ export function drivingDemoSetup(): DrivingSetup {
       { id: 3, name: 'Rival 02', isHuman: false, speed: 83, route },
       { id: 4, name: 'Rival 03', isHuman: false, speed: 88, route },
     ],
-    config: { laps: 2, fuelCapacity: 100, initialNitro: 3, nitroCapacity: 3, nitroSeconds: 4, nitroMultiplier: 1.5, nitroFuelMultiplier: 2, acceleration: 14, braking: 45, countdown: 3, timeLimit: 120, refuelAmount: 40, refuelStopSeconds: 2 },
-    events: [
+    config: { laps, fuelCapacity: 100, initialNitro, nitroCapacity: 3, nitroSeconds: 4, nitroMultiplier: 1.5, nitroFuelMultiplier: 2, acceleration: 14, braking: 45, countdown: 3, timeLimit: Math.max(120, laps * 60), refuelAmount: 40, refuelStopSeconds: 2 },
+    events: eventsEnabled ? [
       { eventId: 'temporary-restriction', triggerTime: 14, effect: { type: 'speed-restriction', edgeId: 'road-6', duration: 12, speedCap: 48 } },
       { eventId: 'oil-at-south-sector', triggerTime: 28, effect: { type: 'oil-spill', edgeId: 'road-8', duration: 15, difficultyPenalty: 2 } },
       { eventId: 'shortcut-closure', triggerTime: 20, effect: { type: 'shortcut', edgeId: 'shortcut-west', open: false } },
       { eventId: 'shortcut-restored', triggerTime: 32, effect: { type: 'shortcut', edgeId: 'shortcut-west', open: true } },
-    ],
+    ] : [],
   };
 }
 
-export function createDrivingDemo(): RaceDriver {
-  const setup = drivingDemoSetup();
+export function createDrivingDemo(options: DrivingDemoOptions = {}): RaceDriver {
+  const setup = drivingDemoSetup(options);
   let engine = new RouteRace(setup);
   const gears = new Map<number, number>();
   const colors = ['#d7ff59', '#58d5ff', '#ff6d90', '#c0a0ff'];

@@ -6,9 +6,9 @@ Iteration 3 builds the remaining major UI views against provisional presentation
 
 ## Connecting the app
 
-`App` accepts optional `raceDriver`, `championshipProvider` and `presetProvider` props. The app currently starts without these providers. A future composition module can construct adapters around the real core implementations and pass them in. Keep the adapters stable for a mounted session; remount the race session when replacing its driver. The UI never imports an alternative race engine or ranking implementation.
+`App` accepts optional `raceDriver`, `championshipProvider` and `presetProvider` props. The app currently starts without these providers. A future composition module can construct adapters around the real core implementations and pass them in. Keep the adapters stable for a mounted session; remount the race session when replacing its driver. The UI factory delegates to the selected driver and never calculates championship rankings.
 
-Without a live driver, Start race is disabled and the race screen offers an opt-in display preview. Without ranking data, the dashboard starts empty and offers an opt-in example season. Without a route provider, comparison costs and weights remain unavailable; illustrative path overlays are explicitly not optimized results.
+Without an injected driver, the race screen now opens configurable setup through `raceSetupProvider`, defaulting to the supplied-route demo. See [the setup/results handoff](race-setup-and-results.md). Without ranking data, the dashboard starts empty and offers an opt-in example season. Without a route provider, comparison costs and weights remain unavailable; illustrative path overlays are explicitly not optimized results.
 
 ## RaceDriver and RaceViewState
 
@@ -31,7 +31,7 @@ The engine adapter must integrate the real `EventProcessor` and checkpoint/resou
 
 `src/ui/fixtures/recorded-race.ts` supplies a short series of explicit illustrative snapshots. Its driver selects display samples by replay time; it does not compute paths, consumption, lap legality, checkpoint order, DNF decisions, event effects or standings. Those sample values are not frozen race defaults or evidence of a valid playable circuit. The replay shows closures, fuel/nitro changes, a DNF and completion to exercise presentation states. It awards no points. Nitro activation is disabled in replay mode.
 
-The sample season shown from the replay completion button is an independent example dashboard, not results of that replay. Both views state this explicitly. Never include these samples as experimental measurements or real integration-test evidence.
+Completion now records a separate session result. Replay records stay explicitly illustrative. The independent example season is available only through its own opt-in dashboard action. Never include these samples as experimental measurements or real integration-test evidence.
 
 ## ChampionshipProvider
 
