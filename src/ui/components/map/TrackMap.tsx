@@ -7,9 +7,12 @@ interface TrackMapProps {
   onSelectVertex?: (id: number) => void;
   showLabels?: boolean;
   highlightedRoads?: readonly string[];
+  visitedVertices?: readonly number[];
+  frontierVertices?: readonly number[];
+  activeEdge?: string;
 }
 
-export function TrackMap({ track, selectedVertex, onSelectVertex, showLabels = true, highlightedRoads = [] }: TrackMapProps) {
+export function TrackMap({ track, selectedVertex, onSelectVertex, showLabels = true, highlightedRoads = [], visitedVertices = [], frontierVertices = [], activeEdge }: TrackMapProps) {
   const [zoom, setZoom] = useState(1);
   const titleId = useId();
   const gridId = useId();
@@ -28,7 +31,7 @@ export function TrackMap({ track, selectedVertex, onSelectVertex, showLabels = t
           const from = vertices.get(road.from);
           const to = vertices.get(road.to);
           if (!from || !to) return null;
-          return <g key={road.id} className={`map-road ${road.status} ${road.shortcut ? 'shortcut' : ''} ${highlightedRoads.includes(road.id) ? 'highlighted' : ''}`}>
+          return <g key={road.id} className={`map-road ${road.status} ${road.shortcut ? 'shortcut' : ''} ${highlightedRoads.includes(road.id) ? 'highlighted' : ''} ${activeEdge === road.id ? 'active-edge' : ''}`}>
             <title>{road.id}: {road.status}{road.shortcut ? ', shortcut' : ''}</title>
             <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="road-border" />
             <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="road-surface" />
@@ -36,7 +39,7 @@ export function TrackMap({ track, selectedVertex, onSelectVertex, showLabels = t
             {road.status === 'blocked' && <text x={(from.x + to.x) / 2} y={(from.y + to.y) / 2} className="road-block">×</text>}
           </g>;
         })}
-        {track.vertices.map((vertex) => <g key={vertex.id} className={`map-node ${vertex.kind} ${selectedVertex === vertex.id ? 'selected' : ''}`}
+        {track.vertices.map((vertex) => <g key={vertex.id} className={`map-node ${vertex.kind} ${selectedVertex === vertex.id ? 'selected' : ''} ${visitedVertices.includes(vertex.id) ? 'visited' : ''} ${frontierVertices.includes(vertex.id) ? 'frontier' : ''} ${vertex.active === false ? 'inactive' : ''}`}
           role={onSelectVertex ? 'button' : undefined} tabIndex={onSelectVertex ? 0 : undefined}
           aria-label={vertex.label} aria-pressed={onSelectVertex ? selectedVertex === vertex.id : undefined}
           onClick={() => onSelectVertex?.(vertex.id)}

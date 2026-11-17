@@ -6,6 +6,8 @@ Scope: your responsibilities in `DAA Project division.docx`. This plan starts fr
 
 **Progress update, 17 November:** the first foundation implementation is delivered. See [Iteration 1 status](iteration-1-status.md) for implemented features, verification and remaining shared-contract/engine dependencies. The starting-point bullets below describe the baseline before this work.
 
+**Iteration 2 update, 17 November:** BFS/DFS, Explorer paths/closures, trace playback and the event queue/effect simulation are delivered. See [Iteration 2 status](iteration-2-status.md). Weighted routing, Dijkstra/A* replay and real race-tick integration await Alishba's modules and shared-contract agreement.
+
 - Complete: folder structure, dependencies, starter screen, TypeScript, lint, build and test configuration.
 - Pending: shared contracts, all algorithms, event behavior, real screens and experiments. The current test command allows an empty suite; that is not evidence of implemented behavior.
 - Keep personal names out of the product UI.

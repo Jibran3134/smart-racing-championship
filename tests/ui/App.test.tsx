@@ -15,6 +15,22 @@ beforeAll(() => {
 });
 
 describe('application foundation', () => {
+  it('shares Explorer road changes with traversal replay across navigation', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Explore the circuit/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Block selected road' }));
+    fireEvent.change(screen.getByLabelText('Road', { exact: true }), { target: { value: 'road-10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Block selected road' }));
+    fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: /Algorithm Lab/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'BFS / DFS exploration' }));
+    expect(screen.getByText('0 / 4 steps')).toBeInTheDocument();
+    for (let step = 0; step < 4; step++) fireEvent.click(screen.getByRole('button', { name: 'Step', exact: true }));
+    expect(screen.getByRole('status')).toHaveTextContent('Traversal complete.');
+    expect(screen.getByText('Expanded vertices').parentElement).toHaveTextContent('1');
+    fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: /Track Explorer/ }));
+    expect(screen.getByRole('status')).toHaveTextContent('No route reaches');
+  });
+
   it('navigates across five screens and preserves race mode', () => {
     render(<App />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Every route.');

@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MotionConfig, motion, useReducedMotion } from 'framer-motion';
 import { MainMenu } from '../ui/screens/main-menu/MainMenu';
 import { TrackExplorer } from '../ui/screens/track-explorer/TrackExplorer';
 import { AlgorithmLab } from '../ui/screens/algorithm-lab/AlgorithmLab';
 import { RacingScreen } from '../ui/screens/racing/RacingScreen';
 import { ChampionshipDashboard } from '../ui/screens/championship-dashboard/ChampionshipDashboard';
+import { previewTrack } from '../ui/fixtures/preview-track';
+import type { MapRoad } from '../ui/components/map/map-model';
 
 const screens = [
   { id: 'menu', label: 'Overview' },
@@ -22,6 +24,8 @@ export function App() {
   const [reduceMotion, setReduceMotion] = useState(false);
   const systemReducedMotion = useReducedMotion();
   const [dialog, setDialog] = useState<'instructions' | 'settings' | null>(null);
+  const [roadOverrides, setRoadOverrides] = useState<Record<string, MapRoad['status']>>({});
+  const currentTrack = useMemo(() => ({ ...previewTrack, roads: previewTrack.roads.map((road) => ({ ...road, status: roadOverrides[road.id] ?? road.status })) }), [roadOverrides]);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const returnFocusRef = useRef<HTMLButtonElement | null>(null);
@@ -42,22 +46,22 @@ export function App() {
       <a className="skip-link" href="#main-content">Skip to content</a>
       <header className="app-header">
         <button className="brand" aria-label="Smart Racing Championship home" onClick={() => navigate('menu')}><span className="brand-mark" aria-hidden="true">S<span>R</span></span><span>SMART RACING<small>CHAMPIONSHIP</small></span></button>
-        <div className="header-actions"><span className="build-badge">DEVELOPMENT / 01</span><button className="text-button" onClick={(event) => { returnFocusRef.current = event.currentTarget; setDialog('instructions'); }}>Instructions</button><button className="settings-button" aria-label="Open settings" onClick={(event) => { returnFocusRef.current = event.currentTarget; setDialog('settings'); }}>Settings <span aria-hidden="true">⚙</span></button></div>
+        <div className="header-actions"><span className="build-badge">DEVELOPMENT / 02</span><button className="text-button" onClick={(event) => { returnFocusRef.current = event.currentTarget; setDialog('instructions'); }}>Instructions</button><button className="settings-button" aria-label="Open settings" onClick={(event) => { returnFocusRef.current = event.currentTarget; setDialog('settings'); }}>Settings <span aria-hidden="true">⚙</span></button></div>
       </header>
       <nav className="main-nav" aria-label="Main navigation">{screens.map((item, index) => <button key={item.id} aria-current={screen === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}><span className="nav-number">0{index + 1}</span>{item.label}</button>)}<span className="nav-status"><span className="live-light" /> LOCAL WORKSPACE</span></nav>
       <main id="main-content" tabIndex={-1} ref={mainRef}>
         <motion.div key={screen} initial={{ opacity: reduceMotion || systemReducedMotion ? 1 : 0 }} animate={{ opacity: 1 }} transition={{ duration: reduceMotion || systemReducedMotion ? 0 : 0.18 }}>
           {screen === 'menu' && <MainMenu onExplore={() => navigate('explorer')} onLab={() => navigate('lab')} onRace={openRace} showLabels={showLabels} />}
-          {screen === 'explorer' && <TrackExplorer showLabels={showLabels} />}
+          {screen === 'explorer' && <TrackExplorer showLabels={showLabels} track={currentTrack} onChangeRoad={(id, status) => setRoadOverrides((previous) => ({ ...previous, [id]: status }))} onRestoreRoads={() => setRoadOverrides({})} />}
           {screen === 'racing' && <RacingScreen mode={mode} onExplore={() => navigate('explorer')} />}
-          {screen === 'lab' && <AlgorithmLab />}
+          {screen === 'lab' && <AlgorithmLab showLabels={showLabels} track={currentTrack} />}
           {screen === 'dashboard' && <ChampionshipDashboard onRace={() => openRace('championship')} />}
         </motion.div>
       </main>
-      <footer className="app-footer"><span>SMART RACING CHAMPIONSHIP</span><span>Explore. Optimize. Compete.</span><span>ITERATION 01 / FOUNDATION</span></footer>
+      <footer className="app-footer"><span>SMART RACING CHAMPIONSHIP</span><span>Explore. Optimize. Compete.</span><span>ITERATION 02 / EXPLORATION</span></footer>
       <dialog ref={dialogRef} aria-labelledby="dialog-title" className="app-dialog" onCancel={() => setDialog(null)} onClose={() => { setDialog(null); returnFocusRef.current?.focus(); }}>
         <div className="dialog-heading"><p className="eyebrow">WORKSPACE GUIDE</p><button className="text-button" onClick={() => setDialog(null)} aria-label="Close dialog">Close ×</button></div><h2 id="dialog-title">{dialog === 'settings' ? 'Make it your workspace.' : 'Choose your next move.'}</h2>
-        {dialog === 'settings' ? <div className="settings-list"><label><span><strong>Map labels</strong><small>Show labels for services and special vertices.</small></span><input type="checkbox" checked={showLabels} onChange={(event) => setShowLabels(event.target.checked)} /></label><label><span><strong>Reduce motion</strong><small>Turn off transitions. System preferences are also respected.</small></span><input type="checkbox" checked={reduceMotion} onChange={(event) => setReduceMotion(event.target.checked)} /></label><p className="small-text">Settings apply for this session.</p></div> : <div className="instructions-copy"><p><strong>Explore:</strong> open Track Explorer and select any vertex using the map or vertex selector. Zoom and Fit adjust the map view.</p><p><strong>Inspect:</strong> open Algorithm Lab to insert values into the shared min-heap, extract the smallest value and inspect counters.</p><p><strong>Coming next:</strong> BFS/DFS exploration and trace playback, followed by race-engine integration. Race and championship screens currently show their integration status.</p><p>In the completed game, visit mandatory checkpoints in order, manage fuel and nitro, and respond to changing roads.</p></div>}
+        {dialog === 'settings' ? <div className="settings-list"><label><span><strong>Map labels</strong><small>Show labels for services and special vertices.</small></span><input type="checkbox" checked={showLabels} onChange={(event) => setShowLabels(event.target.checked)} /></label><label><span><strong>Reduce motion</strong><small>Turn off transitions. System preferences are also respected.</small></span><input type="checkbox" checked={reduceMotion} onChange={(event) => setReduceMotion(event.target.checked)} /></label><p className="small-text">Settings apply for this session.</p></div> : <div className="instructions-copy"><p><strong>Explore:</strong> open Track Explorer, choose start and destination vertices, compare BFS and alternative paths, or block a road to test reachability. Zoom and Fit adjust the map view.</p><p><strong>Inspect:</strong> open Algorithm Lab for the heap workspace, BFS/DFS step playback, or a deterministic event simulation with independent expiries.</p><p><strong>Coming next:</strong> weighted routing and race simulation. Race and championship screens remain unavailable while those features are being developed.</p><p>In the completed game, visit mandatory checkpoints in order, manage fuel and nitro, and respond to changing roads.</p></div>}
       </dialog>
     </div>
   </MotionConfig>;

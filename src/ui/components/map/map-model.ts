@@ -6,6 +6,7 @@ export interface MapVertex {
   label: string;
   kind: 'start' | 'checkpoint' | 'intersection' | 'fuel' | 'nitro' | 'dead-end';
   checkpointOrder?: number;
+  active?: boolean;
 }
 export interface MapRoad {
   id: string;
@@ -13,6 +14,7 @@ export interface MapRoad {
   to: number;
   status: 'open' | 'blocked' | 'restricted';
   shortcut?: boolean;
+  directed?: boolean;
 }
 export interface TrackMapData {
   name: string;
