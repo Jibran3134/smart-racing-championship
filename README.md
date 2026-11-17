@@ -1,6 +1,6 @@
 # Smart Racing Championship
 
-DAA project by Jibran and Alishba. This repository currently contains the folder skeleton, tooling and a starter screen. Algorithms and game features are not implemented yet.
+DAA project by Jibran and Alishba. Iteration 1 is underway: the reusable min-heap, application shell, interactive map preview and heap Lab are implemented. Racing and championship results are not yet available. See [implementation status](docs/iteration-1-status.md).
 
 ## Setup
 
@@ -22,7 +22,7 @@ Open the local URL printed by Vite. On PowerShell, use `npm.cmd` if your executi
 | `npm run preview` | Preview the production build |
 | `npm run typecheck` | Check app, tooling and experiment TypeScript |
 | `npm run lint` | ESLint, including core/UI import restrictions |
-| `npm test` | Run Vitest; currently allows an empty suite |
+| `npm test` | Run heap correctness and UI interaction tests |
 | `npm run test:watch` | Watch tests during implementation |
 | `npm run test:coverage` | Core coverage using V8 |
 | `npm run experiments` | List the five experiment workspaces |
@@ -66,7 +66,7 @@ See [the setup notes](docs/architecture.md) for integration rules and [the full 
 ## Next implementation steps
 
 1. Use `Project.pdf` to agree on `types.ts` and `config.ts`, and record the contract in `docs/interfaces/`.
-2. Jibran implements the shared heap; Alishba supplies the graph, sample circuit and engine state stub.
-3. Implement the assigned modules and edge-case tests, then wire all five screens to the shared core.
+2. Alishba can reuse the [implemented heap](docs/interfaces/min-heap.md) and supply the graph, sample circuit and engine state stub.
+3. Implement BFS/DFS, event handling and trace playback, then connect the UI to routing, resources, racing and ranking modules.
 
 No backend, database, algorithm library, or extra Canvas/SVG package is needed for the specified stack. Canvas and SVG are browser features.

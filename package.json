@@ -12,9 +12,9 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "test:coverage": "vitest run --coverage",
     "experiments": "tsx experiments/run.ts"
   },
   "dependencies": {

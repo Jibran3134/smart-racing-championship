@@ -4,6 +4,8 @@ Scope: your responsibilities in `DAA Project division.docx`. This plan starts fr
 
 ## Starting point and working rules
 
+**Progress update, 17 November:** the first foundation implementation is delivered. See [Iteration 1 status](iteration-1-status.md) for implemented features, verification and remaining shared-contract/engine dependencies. The starting-point bullets below describe the baseline before this work.
+
 - Complete: folder structure, dependencies, starter screen, TypeScript, lint, build and test configuration.
 - Pending: shared contracts, all algorithms, event behavior, real screens and experiments. The current test command allows an empty suite; that is not evidence of implemented behavior.
 - Keep personal names out of the product UI.
