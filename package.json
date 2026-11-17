@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "experiments": "tsx experiments/run.ts"
+    "experiments": "tsx experiments/run.ts",
+    "submission:check": "tsx experiments/submission-check.ts"
   },
   "dependencies": {
     "framer-motion": "^14.14.0",

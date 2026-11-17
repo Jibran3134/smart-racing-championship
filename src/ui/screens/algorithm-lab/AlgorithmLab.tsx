@@ -4,6 +4,7 @@ import { SearchLab } from './SearchLab';
 import { EventLab } from './EventLab';
 import { previewTrack } from '../../fixtures/preview-track';
 import type { TrackMapData } from '../../components/map/map-model';
+import { ExperimentLab } from './ExperimentLab';
 
 export function AlgorithmLab({ showLabels = true, track = previewTrack }: { showLabels?: boolean; track?: TrackMapData }) {
   const [workspace, setWorkspace] = useState('heap');
@@ -12,9 +13,11 @@ export function AlgorithmLab({ showLabels = true, track = previewTrack }: { show
       <button aria-pressed={workspace === 'heap'} onClick={() => setWorkspace('heap')}>Binary heap</button>
       <button aria-pressed={workspace === 'search'} onClick={() => setWorkspace('search')}>BFS / DFS exploration</button>
       <button aria-pressed={workspace === 'events'} onClick={() => setWorkspace('events')}>Event simulation</button>
+      <button aria-pressed={workspace === 'experiments'} onClick={() => setWorkspace('experiments')}>Experiment results</button>
     </div>
     {workspace === 'heap' && <HeapLab />}
     {workspace === 'search' && <SearchLab showLabels={showLabels} track={track} />}
     {workspace === 'events' && <EventLab showLabels={showLabels} />}
+    {workspace === 'experiments' && <ExperimentLab />}
   </>;
 }

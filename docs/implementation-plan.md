@@ -2,6 +2,8 @@
 
 Scope: your responsibilities in `DAA Project division.docx`. This plan starts from the existing scaffold and groups the work into four substantial iterations. Each iteration ends with working, integrated behavior and relevant tests. Dates are targets based on the division's timeline; submission is due 5 December 2026 at 11:59 PM, Asia/Karachi.
 
+**Iteration 4 evidence update, 17 November:** experiments 1/4, shared exports, the measured-results Lab and assigned report draft are delivered. The default studies produced 225 raw measurements and passed 26 correctness checks. Final integration, joint review, report PDF and submission packaging remain pending. See [Iteration 4 status](iteration-4-status.md).
+
 ## Starting point and working rules
 
 **Progress update, 17 November:** the first foundation implementation is delivered. See [Iteration 1 status](iteration-1-status.md) for implemented features, verification and remaining shared-contract/engine dependencies. The starting-point bullets below describe the baseline before this work.
@@ -10,7 +12,7 @@ Scope: your responsibilities in `DAA Project division.docx`. This plan starts fr
 
 **Iteration 3 update, 17 November:** race presentation, controller lifecycle, dashboard/charts and the preset comparison UI are implemented against provisional adapters. See [Iteration 3 status](iteration-3-status.md). Playable-race acceptance, actual standings/top-k and optimized preset routes remain pending core modules; previews do not count as their completion.
 
-**Racing request, 17 November:** the user selected route-based racing with nitro. A draft supplied-route driving session, continuous Canvas car rendering, cockpit/cameras and opt-in synthesized audio are implemented. See [racing upgrade](racing-upgrade.md). This extends the driving demo while leaving shared configuration, official opponent strategies, optimization and full championship acceptance open.
+**Racing request, 17 November:** the user selected route-based racing with nitro. A draft supplied-route driving session, continuous Canvas car rendering, cockpit/cameras and automatic formula-style engine audio are implemented. See [racing upgrade](racing-upgrade.md). This extends the driving demo while leaving shared configuration, official opponent strategies, optimization and full championship acceptance open.
 
 - Complete: folder structure, dependencies, starter screen, TypeScript, lint, build and test configuration.
 - Pending: shared contracts, all algorithms, event behavior, real screens and experiments. The current test command allows an empty suite; that is not evidence of implemented behavior.

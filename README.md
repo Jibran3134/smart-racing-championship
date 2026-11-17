@@ -27,7 +27,8 @@ To race: **Race > Start driving demo > Start race**. Sound starts with the race.
 | `npm test` | Run heap, exploration, events, race lifecycle and UI interaction tests |
 | `npm run test:watch` | Watch tests during implementation |
 | `npm run test:coverage` | Core coverage using V8 |
-| `npm run experiments` | List the five experiment workspaces |
+| `npm run experiments -- --experiment all` | Run seeded BFS/DFS and event queue studies; save raw CSV/JSON and reports |
+| `npm run submission:check` | Check required submission files and report outstanding integration/metadata |
 
 ## Structure and ownership
 
@@ -73,3 +74,7 @@ See [the setup notes](docs/architecture.md) for integration rules and [the full 
 4. Connect the [game-presentation adapters](docs/interfaces/game-presentation.md) for live racing, championship ranking/top-k and optimized preset comparison. The labelled UI fixtures are not substitutes for those algorithms.
 
 No backend, database, algorithm library, or extra Canvas/SVG package is needed for the specified stack. Canvas and SVG are browser features.
+
+## Experiments and report evidence
+
+Run `npm run experiments -- --experiment all`, then open **Algorithm Lab > Experiment results** and import the generated JSON from `experiments/results/`. Both studies reuse production core functions and include warm-ups, five measured runs, counters and correctness checks. Export raw/summary CSV or JSON from the viewer. See [the full procedure](docs/experiments.md) and [Iteration 4 status](docs/iteration-4-status.md). Generated measurements stay local and must be explicitly included in the final submission.
