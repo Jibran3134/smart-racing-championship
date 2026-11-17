@@ -12,6 +12,12 @@ export function useRaceController(driver: RaceDriver) {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
 
+  useEffect(() => {
+    const pauseWhenHidden = () => { if (document.hidden) setPlaying(false); };
+    document.addEventListener('visibilitychange', pauseWhenHidden);
+    return () => document.removeEventListener('visibilitychange', pauseWhenHidden);
+  }, []);
+
   const perform = useCallback((action: () => void) => {
     try { action(); setReading(readDriver(driver)); }
     catch (error) {
@@ -48,7 +54,7 @@ export function useRaceController(driver: RaceDriver) {
   return {
     ...reading, playing, speed, setSpeed,
     play: () => {
-      try { driver.start(); const next = readDriver(driver); setReading(next); setPlaying(next.error === null && next.state?.phase === 'running'); }
+      try { driver.start(); const next = readDriver(driver); setReading(next); setPlaying(next.error === null && (next.state?.phase === 'running' || next.state?.phase === 'countdown')); }
       catch (error) { setReading((previous) => ({ ...previous, error: error instanceof Error ? error.message : 'Unable to start.' })); }
     },
     pause: () => setPlaying(false),

@@ -10,6 +10,8 @@ Scope: your responsibilities in `DAA Project division.docx`. This plan starts fr
 
 **Iteration 3 update, 17 November:** race presentation, controller lifecycle, dashboard/charts and the preset comparison UI are implemented against provisional adapters. See [Iteration 3 status](iteration-3-status.md). Playable-race acceptance, actual standings/top-k and optimized preset routes remain pending core modules; previews do not count as their completion.
 
+**Racing request, 17 November:** the user selected route-based racing with nitro. A draft supplied-route driving session, continuous Canvas car rendering, cockpit/cameras and opt-in synthesized audio are implemented. See [racing upgrade](racing-upgrade.md). This extends the driving demo while leaving shared configuration, official opponent strategies, optimization and full championship acceptance open.
+
 - Complete: folder structure, dependencies, starter screen, TypeScript, lint, build and test configuration.
 - Pending: shared contracts, all algorithms, event behavior, real screens and experiments. The current test command allows an empty suite; that is not evidence of implemented behavior.
 - Keep personal names out of the product UI.

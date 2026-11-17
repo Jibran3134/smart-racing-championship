@@ -2,6 +2,8 @@
 
 Implemented 17 November 2026. This delivers the UI and adapter portion of Iteration 3. The iteration's playable-race and real championship acceptance criteria remain open because Alishba's modules are not yet present.
 
+**Later racing upgrade:** the user's request for proper continuous racing and sound adds a playable supplied-route driving demo, Canvas racing scene, nitro, cameras and synthesized audio. See [the upgrade notes](racing-upgrade.md). The snapshot-only items below describe the original milestone; the complete three-circuit championship and optimized routing remain open.
+
 ## Delivered
 
 - Race control view with map-based cars, race clock, lap/checkpoint/position telemetry, fuel/nitro gauges, running order, event feed and supplied waiting/DNF/error/completion states.

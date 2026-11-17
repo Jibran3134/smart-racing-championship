@@ -12,10 +12,17 @@ export interface RacerView extends MapCar {
   nitroCapacity: number;
   lap: number;
   checkpoint: number;
+  speedKph?: number;
+  rpm?: number;
+  gear?: number;
+  braking?: boolean;
+  boosting?: boolean;
+  finishTime?: number | null;
 }
 
 export interface RaceViewState {
-  phase: 'ready' | 'running' | 'finished';
+  phase: 'ready' | 'countdown' | 'running' | 'finished';
+  countdown?: number | null;
   clock: number;
   totalLaps: number;
   checkpointCount: number;
@@ -26,7 +33,7 @@ export interface RaceViewState {
 }
 
 export interface RaceDriver {
-  kind: 'live' | 'replay';
+  kind: 'live' | 'replay' | 'demo';
   getState(): RaceViewState;
   start(): void;
   step(seconds: number): void;

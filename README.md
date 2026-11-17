@@ -1,6 +1,6 @@
 # Smart Racing Championship
 
-DAA project by Jibran and Alishba. The min-heap, BFS/DFS Explorer, trace playback and event queue/effects are implemented. Race-display replay, an example championship dashboard and preset comparison UI are available for review. Playable racing, actual championship results and optimized routing still await core integration. See [Iteration 3 status](docs/iteration-3-status.md).
+DAA project by Jibran and Alishba. The min-heap, BFS/DFS Explorer, trace playback and event queue/effects are implemented. A continuous route-racing demo now includes detailed cars, acceleration/braking, nitro, cameras and optional engine/track sounds. The dashboard and preset UI are available; actual championship scoring, optimized routes and the complete three-circuit game still await integration. See [the racing upgrade](docs/racing-upgrade.md).
 
 ## Setup
 
@@ -12,6 +12,8 @@ npm run dev
 ```
 
 Open the local URL printed by Vite. On PowerShell, use `npm.cmd` if your execution policy prevents `npm.ps1` from running.
+
+To race: **Race → Start driving demo → Enable sound (optional) → Start race**. Click the circuit to use **N** for nitro, **Space** for pause, **C** for camera and **M** for sound. Follow/circuit cameras, fullscreen, volume and touch-friendly nitro controls are available on the racing screen.
 
 ## Commands
 

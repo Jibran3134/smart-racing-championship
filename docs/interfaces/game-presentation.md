@@ -2,6 +2,8 @@
 
 Iteration 3 builds the remaining major UI views against provisional presentation adapters. These are in `src/ui/adapters/`; they do not freeze the shared core `types.ts` or `config.ts`. The real graph, routing, resource planning, race engine and ranking modules still belong to Alishba.
 
+**Racing-upgrade update:** the app now uses the draft `RouteRace` core driving session through a `RaceDriver` of kind `demo`, with countdown, continuous movement, speed/RPM/gear, nitro and actual race-event effects. See `../racing-upgrade.md`. The snapshot-only preview described below remains a test fixture, not the current app entry point. The Canvas scene/audio consume the same adapter and can be retained when integrating the complete engine. `RaceViewState.phase` also supports `countdown`; racer telemetry may include speed/RPM/gear/braking/boost and finish time.
+
 ## Connecting the app
 
 `App` accepts optional `raceDriver`, `championshipProvider` and `presetProvider` props. The app currently starts without these providers. A future composition module can construct adapters around the real core implementations and pass them in. Keep the adapters stable for a mounted session; remount the race session when replacing its driver. The UI never imports an alternative race engine or ranking implementation.
