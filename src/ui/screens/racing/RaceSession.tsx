@@ -17,6 +17,17 @@ export function RaceSession({ driver, showLabels, onViewResults, onComplete, onR
   const complete = state?.phase === 'finished';
   const demo = driver.kind === 'demo';
   const nitroAvailable = !replay && Boolean(driver.activateNitro) && control.playing && state?.phase === 'running' && Boolean(player && player.status === 'racing' && player.nitro > 0 && !player.boosting);
+  const nitroHint = replay ? 'Nitro cannot be activated in a recorded preview.'
+    : !driver.activateNitro ? 'Nitro control is unavailable for this session.'
+    : complete ? 'Session complete. Restart to race again.'
+    : !player || player.status === 'dnf' || player.status === 'finished' ? 'Nitro is unavailable because your car is no longer racing.'
+    : player.nitro <= 0 && !player.boosting ? 'No nitro charges left. Restart with more charges to try another strategy.'
+    : state?.phase === 'ready' ? 'Start the race to use nitro.'
+    : !control.playing ? 'Resume the race to use nitro.'
+    : state?.phase === 'countdown' ? 'Wait for the starting lights to go out.'
+    : player.boosting ? 'Boost is active. Wait for it to finish before using another charge.'
+    : player.status === 'waiting' ? 'Nitro is unavailable while your car is waiting for recovery.'
+    : 'Click Activate nitro, or focus the track and press N. Boosting uses extra fuel.';
   const startRace = () => { void sound.enableForRace(); control.play(); };
   const reported = useRef(false);
   useEffect(() => {
@@ -68,8 +79,8 @@ export function RaceSession({ driver, showLabels, onViewResults, onComplete, onR
         <section className="panel inspector"><p className="eyebrow">YOUR RESOURCES</p><h2>{player?.label ?? 'Player unavailable'}</h2>
           <ResourceGauge label="Fuel" value={player?.fuel ?? NaN} maximum={player?.fuelCapacity ?? 0} unit="units" />
           <ResourceGauge label="Nitro" value={player?.nitro ?? NaN} maximum={player?.nitroCapacity ?? 0} unit="charges" />
-          <button className="button secondary nitro-button" disabled={!nitroAvailable} onClick={control.activateNitro}>{player?.boosting ? 'Nitro engaged' : 'Activate nitro'}</button>
-          <p className="small-text">{replay ? 'Resources are recorded display values. Nitro activation is available only in a connected live race.' : 'The race engine validates capacity, duration and fuel use.'}</p>
+          <button className="button secondary nitro-button" aria-describedby="nitro-help" disabled={!nitroAvailable} onClick={control.activateNitro}>{player?.boosting ? 'Nitro engaged' : 'Activate nitro'}</button>
+          <p id="nitro-help" className="small-text">{nitroHint}</p>
           {player?.status === 'dnf' && <div className="error-banner" role="status">DNF: {player.statusReason ?? 'Unable to continue.'}</div>}
           {player?.status === 'waiting' && <div className="notice"><h3>Waiting for recovery</h3><p>{player.statusReason ?? 'No route is currently available.'}</p></div>}
         </section>

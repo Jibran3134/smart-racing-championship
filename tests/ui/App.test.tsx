@@ -43,7 +43,8 @@ describe('application foundation', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Championship Dashboard');
     fireEvent.click(screen.getByRole('button', { name: /Championship setup/ }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Championship');
-    expect(await screen.findByRole('button', { name: 'Start race' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Start driving demo' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Start race', exact: true })).not.toBeInTheDocument();
     fireEvent.click(navigation.getByRole('button', { name: /Overview/ }));
     fireEvent.click(screen.getByRole('button', { name: /02 \/ QUICK RACE/ }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Quick Race');

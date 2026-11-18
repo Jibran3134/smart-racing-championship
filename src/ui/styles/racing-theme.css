@@ -93,6 +93,9 @@ h1, h2, h3 { font-family: var(--heading-font); }
 .scene-live i { background: var(--accent); box-shadow: none; }
 .active-array-item { border-color: #f9707a !important; background: #43252c !important; }
 .resource-plan:has(input:checked) { border-color: #fa727c; background: #3c242a; }
+.interaction-guide { margin-bottom: 18px; border-left: 3px solid var(--accent); }
+.interaction-guide:not(.panel) { padding-left: 12px; margin-top: 18px; }
+.interaction-guide ol { padding-left: 22px; color: var(--text-muted, #bdbdc7); line-height: 1.8; }
 .app-footer { border-color: #53535b; color: #a7a7b2; }
 .settings-button { background: linear-gradient(#333339, #222227); border-color: #696972; border-radius: 2px; }
 
