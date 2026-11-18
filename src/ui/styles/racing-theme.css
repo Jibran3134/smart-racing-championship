@@ -69,8 +69,8 @@ h1, h2, h3 { font-family: var(--heading-font); }
 .table-scroll tbody tr:hover { background: #4c232b; }
 .table-scroll th, .table-scroll td { border-color: #414147; }
 .table-scroll .points-cell { color: #ff929b; }
-.table-scroll tr.player-row { background: linear-gradient(90deg, #bd1623, #8c1520); }
-.table-scroll tr.player-row > * { color: white; }
+.table-scroll tbody tr.player-row { background: linear-gradient(90deg, #bd1623, #8c1520); }
+.table-scroll tbody tr.player-row > * { color: white; }
 .podium-card { background: linear-gradient(135deg, #34343a, #1b1b20); }
 .podium-1 { border-color: #f05b65; box-shadow: inset 0 3px var(--accent), inset 0 0 0 3px #101013; }
 .preview-banner, .driving-demo-banner { background: #28282d; border-color: #66666f; color: #d5d5dc; }
