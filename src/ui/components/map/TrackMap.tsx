@@ -39,6 +39,7 @@ export function TrackMap({ track, selectedVertex, onSelectVertex, showLabels = t
           return <g key={road.id} className={`map-road ${road.status} ${road.shortcut ? 'shortcut' : ''} ${highlightedRoads.includes(road.id) ? 'highlighted' : ''} ${activeEdge === road.id ? 'active-edge' : ''}`}>
             <title>{road.id}: {road.status}{road.shortcut ? ', shortcut' : ''}</title>
             <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="road-border" />
+            <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="road-kerb" />
             <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="road-surface" />
             <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="road-center" />
             {road.status === 'blocked' && <text x={(from.x + to.x) / 2} y={(from.y + to.y) / 2} className="road-block">×</text>}

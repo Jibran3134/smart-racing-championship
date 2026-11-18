@@ -3,9 +3,10 @@ import { parseExperiment, samplesCsv, summaryCsv, summarizeSamples } from '../..
 import type { ExperimentBundle } from '../../../shared/experiment-results';
 import { toJson } from '../../../shared/exports';
 import { downloadText } from '../../components/common/download';
+import { chartPaints } from '../../styles/palette';
 
 const SeriesChart = lazy(() => import('../../components/charts/SeriesChart').then((module) => ({ default: module.SeriesChart })));
-const colors = ['#d7ff59', '#58d5ff', '#ff8f74', '#c0a0ff'];
+const colors = chartPaints;
 
 export function ExperimentLab() {
   const [bundle, setBundle] = useState<ExperimentBundle | null>(null);

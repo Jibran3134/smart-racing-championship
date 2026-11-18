@@ -1,11 +1,12 @@
+import { racerPaints } from '../styles/palette';
 import type { ChampionshipProvider, ResultView } from '../adapters/championship-view';
 
 /** Fixed, already ordered presentation data. No scoring/sorting algorithms here. */
 const ranking = [
-  { racerId: 2, name: 'Rival 01', color: '#72cce4', points: 61, wins: 1, sumOfPositions: 5, fastestLap: 44.2 },
-  { racerId: 1, name: 'You', color: '#c5f568', points: 58, wins: 1, sumOfPositions: 6, fastestLap: 45 },
-  { racerId: 3, name: 'Rival 02', color: '#c8a3ef', points: 52, wins: 1, sumOfPositions: 8, fastestLap: 43.8 },
-  { racerId: 4, name: 'Rival 03', color: '#f0b77b', points: 39, wins: 0, sumOfPositions: 11, fastestLap: 47.6 },
+  { racerId: 2, name: 'Rival 01', color: racerPaints[1], points: 61, wins: 1, sumOfPositions: 5, fastestLap: 44.2 },
+  { racerId: 1, name: 'You', color: racerPaints[0], points: 58, wins: 1, sumOfPositions: 6, fastestLap: 45 },
+  { racerId: 3, name: 'Rival 02', color: racerPaints[2], points: 52, wins: 1, sumOfPositions: 8, fastestLap: 43.8 },
+  { racerId: 4, name: 'Rival 03', color: racerPaints[3], points: 39, wins: 0, sumOfPositions: 11, fastestLap: 47.6 },
 ];
 const first: ResultView[] = [
   { racerId: 1, name: 'You', position: 1, status: 'finished', finishTime: 101.2, fastestLap: 46, points: 25 },
@@ -27,7 +28,7 @@ const third: ResultView[] = [
 ];
 
 export const exampleChampionship: ChampionshipProvider = {
-  kind: 'example', complete: true,
+  kind: 'example', complete: true, humanRacerId: 1,
   races: [
     { id: 'example-1', name: 'Example race 01', results: first },
     { id: 'example-2', name: 'Example race 02', results: second },

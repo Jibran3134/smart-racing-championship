@@ -1,0 +1,23 @@
+:root {
+  --page: #111113;
+  --surface: #1c1c20;
+  --surface-raised: #28282d;
+  --surface-inset: #151518;
+  --text: #f2f2f4;
+  --text-secondary: #c0c0c8;
+  --text-muted: #9e9ea8;
+  --border: #49494f;
+  --border-metal: #72727b;
+  --accent: #d91f2b;
+  --accent-hover: #f12d3a;
+  --accent-text: #ff8991;
+  --focus: #fff0f1;
+  --success: #88b99b;
+  --warning: #e8b65a;
+  --danger: #ff9098;
+  --chart-primary: #f34b57;
+  --chart-secondary: #d4d4dc;
+  --chart-third: #e8b65a;
+  --chart-fourth: #7fc9e0;
+  --heading-font: "Bahnschrift Condensed", "Arial Narrow", "Roboto Condensed", "Segoe UI", sans-serif;
+}

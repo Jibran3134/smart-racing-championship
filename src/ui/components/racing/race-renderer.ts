@@ -53,11 +53,11 @@ export function drawRaceScene(ctx: CanvasRenderingContext2D, width: number, heig
   const cx = follow ? point.x : 460;
   const cy = follow ? point.y : 270;
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = '#253a30'; ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = '#27272b'; ctx.fillRect(0, 0, width, height);
   ctx.save(); ctx.translate(width / 2, height / 2); ctx.scale(scale, scale); ctx.translate(-cx, -cy);
-  ctx.fillStyle = '#284333'; ctx.fillRect(-3000, -3000, 6000, 6000);
+  ctx.fillStyle = '#29292d'; ctx.fillRect(-3000, -3000, 6000, 6000);
   // Deterministic grass bands and grounds: decorative only.
-  for (let y = -600; y < 1100; y += 36) { ctx.fillStyle = y % 72 === 0 ? '#2b4735' : '#294231'; ctx.fillRect(-1000, y, 3000, 36); }
+  for (let y = -600; y < 1100; y += 36) { ctx.fillStyle = y % 72 === 0 ? '#2d2d31' : '#2a2a2e'; ctx.fillRect(-1000, y, 3000, 36); }
   const buildings = [[275, 170, 105, 46], [360, 335, 80, 48], [570, 170, 80, 46], [665, 305, 53, 67], [225, 330, 65, 39]];
   for (const [x, y, w, h] of buildings) {
     rounded(ctx, x + 4, y + 6, w, h, 3, '#101c2099'); rounded(ctx, x, y, w, h, 3, '#526066'); rounded(ctx, x + 3, y + 3, w - 6, h - 6, 2, '#737d7c');
@@ -111,10 +111,10 @@ export function drawRaceScene(ctx: CanvasRenderingContext2D, width: number, heig
   }
   if (camera.labels) for (const vertex of state.track.vertices) {
     if (vertex.kind === 'checkpoint') {
-      ctx.save(); ctx.translate(vertex.x, vertex.y); ctx.fillStyle = '#d6edb4'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.fillText(String(vertex.checkpointOrder).padStart(2, '0'), 0, -31); ctx.restore();
+      ctx.save(); ctx.translate(vertex.x, vertex.y); ctx.fillStyle = '#efeff3'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.fillText(String(vertex.checkpointOrder).padStart(2, '0'), 0, -31); ctx.restore();
     } else if (vertex.kind === 'fuel' || vertex.kind === 'nitro') {
-      rounded(ctx, vertex.x - 9, vertex.y - 9, 18, 18, 4, vertex.active === false ? '#53635c' : '#d5ee8d');
-      ctx.fillStyle = '#24312b'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center'; ctx.fillText(vertex.kind === 'fuel' ? 'F' : 'N', vertex.x, vertex.y + 3);
+      rounded(ctx, vertex.x - 9, vertex.y - 9, 18, 18, 4, vertex.active === false ? '#53635c' : '#d4d4dc');
+      ctx.fillStyle = '#242428'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center'; ctx.fillText(vertex.kind === 'fuel' ? 'F' : 'N', vertex.x, vertex.y + 3);
     }
   }
   const dt = state.clock - cache.time;
@@ -130,7 +130,7 @@ export function drawRaceScene(ctx: CanvasRenderingContext2D, width: number, heig
     ctx.scale(0.78, 0.78);
     drawRacingCar(ctx, car.color, Boolean(car.braking), Boolean(car.boosting), camera.reducedMotion ? 0 : state.clock, car.id); ctx.restore();
     if (camera.labels) {
-      ctx.font = 'bold 8px "Segoe UI",sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#182822'; ctx.strokeText(car.label, pose.x, pose.y - 22); ctx.fillStyle = '#f4f8de'; ctx.fillText(car.label, pose.x, pose.y - 22);
+      ctx.font = 'bold 8px "Segoe UI",sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#182822'; ctx.strokeText(car.label, pose.x, pose.y - 22); ctx.fillStyle = '#f4f4f6'; ctx.fillText(car.label, pose.x, pose.y - 22);
     }
   }
   cache.time = state.clock;
@@ -138,10 +138,10 @@ export function drawRaceScene(ctx: CanvasRenderingContext2D, width: number, heig
   // Low-cost minimap, fixed to the viewport, independent of the follow camera.
   const miniWidth = Math.min(170, width * 0.28); const miniHeight = miniWidth * 0.59;
   const miniX = width - miniWidth - 17; const miniY = height - miniHeight - 17;
-  rounded(ctx, miniX, miniY, miniWidth, miniHeight, 8, '#0d191de8');
+  rounded(ctx, miniX, miniY, miniWidth, miniHeight, 8, '#101014e8');
   ctx.save(); ctx.translate(miniX + 5, miniY + 3); ctx.scale((miniWidth - 10) / 920, (miniHeight - 6) / 540); ctx.lineCap = 'round';
   for (const road of state.track.roads) {
-    const a = vertices.get(road.from); const b = vertices.get(road.to); if (a && b) line(ctx, a.x, a.y, b.x, b.y, 8, road.status === 'blocked' ? '#d57b62' : '#60776a');
+    const a = vertices.get(road.from); const b = vertices.get(road.to); if (a && b) line(ctx, a.x, a.y, b.x, b.y, 8, road.status === 'blocked' ? '#d57b62' : '#93939c');
   }
   for (const car of state.cars) { const position = projectCar(state.track, car); if (position) { ctx.fillStyle = car.color; ctx.beginPath(); ctx.arc(position.x, position.y, car.id === camera.carId ? 13 : 9, 0, Math.PI * 2); ctx.fill(); } }
   ctx.restore();

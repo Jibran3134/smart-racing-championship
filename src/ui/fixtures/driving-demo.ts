@@ -3,6 +3,7 @@ import type { DrivingSetup } from '../../core/engine/RouteRace';
 import type { RaceDriver, RacerView } from '../adapters/race-view';
 import { previewTrack } from './preview-track';
 import { formulaPowertrain } from '../adapters/formula-powertrain';
+import { racerPaints } from '../styles/palette';
 
 export interface DrivingDemoOptions { laps?: number; initialNitro?: number; eventsEnabled?: boolean }
 
@@ -40,7 +41,7 @@ export function createDrivingDemo(options: DrivingDemoOptions = {}): RaceDriver 
   const setup = drivingDemoSetup(options);
   let engine = new RouteRace(setup);
   const gears = new Map<number, number>();
-  const colors = ['#d7ff59', '#58d5ff', '#ff6d90', '#c0a0ff'];
+  const colors = racerPaints;
   return {
     kind: 'demo', start: () => engine.start(), step: (seconds) => engine.step(seconds),
     restart: () => { engine = new RouteRace(setup); gears.clear(); }, activateNitro: () => { engine.activateNitro(); },

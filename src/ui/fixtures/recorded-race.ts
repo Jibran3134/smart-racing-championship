@@ -1,3 +1,4 @@
+import { racerPaints } from '../styles/palette';
 import type { RaceDriver, RacerView, RaceViewState } from '../adapters/race-view';
 import { previewTrack } from './preview-track';
 
@@ -46,10 +47,10 @@ export function createRecordedRace(): RaceDriver {
       const sample = samples.filter((frame) => frame.time <= clock).at(-1)!;
       const finished = clock >= duration;
       const cars: RacerView[] = [
-        { id: 1, label: 'You', color: '#c5f568', isHuman: true, position: 1, status: finished ? 'finished' : 'racing', location: { edge: sample.edge, progress: sample.progress }, fuel: sample.fuel, fuelCapacity: 100, nitro: sample.nitro, nitroCapacity: 3, lap: sample.lap, checkpoint: sample.checkpoint },
-        { id: 2, label: 'Rival 01', color: '#72cce4', isHuman: false, position: 2, status: finished ? 'finished' : 'racing', location: { edge: sample.edge, progress: Math.max(0, sample.progress - 0.14) }, fuel: 52, fuelCapacity: 100, nitro: 1, nitroCapacity: 3, lap: sample.lap, checkpoint: sample.checkpoint },
-        { id: 3, label: 'Rival 02', color: '#c8a3ef', isHuman: false, position: 3, status: finished ? 'finished' : 'racing', location: { edge: sample.edge, progress: Math.max(0, sample.progress - 0.28) }, fuel: 44, fuelCapacity: 100, nitro: 2, nitroCapacity: 3, lap: sample.lap, checkpoint: sample.checkpoint },
-        { id: 4, label: 'Rival 03', color: '#f0b77b', isHuman: false, position: 4, status: clock >= 28 ? 'dnf' : 'racing', statusReason: clock >= 28 ? 'Insufficient fuel' : undefined, location: clock >= 28 ? { vertex: 4 } : { edge: sample.edge, progress: Math.max(0, sample.progress - 0.4) }, fuel: clock >= 28 ? 0 : 35, fuelCapacity: 100, nitro: 0, nitroCapacity: 3, lap: sample.lap, checkpoint: clock >= 28 ? 4 : sample.checkpoint },
+        { id: 1, label: 'You', color: racerPaints[0], isHuman: true, position: 1, status: finished ? 'finished' : 'racing', location: { edge: sample.edge, progress: sample.progress }, fuel: sample.fuel, fuelCapacity: 100, nitro: sample.nitro, nitroCapacity: 3, lap: sample.lap, checkpoint: sample.checkpoint },
+        { id: 2, label: 'Rival 01', color: racerPaints[1], isHuman: false, position: 2, status: finished ? 'finished' : 'racing', location: { edge: sample.edge, progress: Math.max(0, sample.progress - 0.14) }, fuel: 52, fuelCapacity: 100, nitro: 1, nitroCapacity: 3, lap: sample.lap, checkpoint: sample.checkpoint },
+        { id: 3, label: 'Rival 02', color: racerPaints[2], isHuman: false, position: 3, status: finished ? 'finished' : 'racing', location: { edge: sample.edge, progress: Math.max(0, sample.progress - 0.28) }, fuel: 44, fuelCapacity: 100, nitro: 2, nitroCapacity: 3, lap: sample.lap, checkpoint: sample.checkpoint },
+        { id: 4, label: 'Rival 03', color: racerPaints[3], isHuman: false, position: 4, status: clock >= 28 ? 'dnf' : 'racing', statusReason: clock >= 28 ? 'Insufficient fuel' : undefined, location: clock >= 28 ? { vertex: 4 } : { edge: sample.edge, progress: Math.max(0, sample.progress - 0.4) }, fuel: clock >= 28 ? 0 : 35, fuelCapacity: 100, nitro: 0, nitroCapacity: 3, lap: sample.lap, checkpoint: clock >= 28 ? 4 : sample.checkpoint },
       ];
       return {
         phase: finished ? 'finished' : started ? 'running' : 'ready', clock, totalLaps: 2, checkpointCount: 10, cars,
