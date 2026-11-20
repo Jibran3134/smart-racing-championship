@@ -26,6 +26,7 @@ import { ChampionshipManager } from '../core/championship/ChampionshipManager';
 import { primMST } from '../core/algorithms/mst/mst';
 import { placeTrackFeatures } from '../core/algorithms/backtracking/trackPlacement';
 import { RaceEngine } from '../core/engine/RaceEngine';
+import type { RaceEventInput } from '../core/events/EventProcessor';
 import { ResourceAdvisor } from '../core/resources/ResourceAdvisor';
 import { PRESET_WEIGHTS, MAX_FUEL, RESOURCE_UNIT } from '../core/config';
 import type { Vertex, Edge, CostPreset, ChampionshipEntry, ResourceItem } from '../core/types';
@@ -422,49 +423,56 @@ class LiveEngineDriver implements RaceDriver {
   }
 }
 
+function computeResourceAdvice(request: RaceSetupRequest): ResourceAdvice {
+  const circuit = circuitsCatalog.find((c) => c.id === request.circuitId);
+  if (!circuit) return { required: false, plans: [] };
+
+  // Extract pickup candidates with physically meaningful detour cost based on track geometry
+  const startPos = circuit.track.vertices.find((tv) => tv.kind === 'start') ?? circuit.track.vertices[0];
+  const items: ResourceItem[] = circuit.track.vertices
+    .filter((v) => v.kind === 'fuel' || v.kind === 'nitro')
+    .map((v) => {
+      const dist = Math.hypot(v.x - startPos.x, v.y - startPos.y);
+      const detourCost = Math.max(8, Math.round(dist / 35));
+      return {
+        id: `pickup-${v.id}`,
+        label: v.kind === 'fuel' ? `Fuel Depot at Vertex ${v.id}` : `Nitro Boost at Vertex ${v.id}`,
+        cost: detourCost,
+        benefit: v.kind === 'fuel' ? 45 : 35,
+      };
+    });
+
+  if (items.length === 0) {
+    items.push(
+      { id: 'opt-1', label: 'Safety fuel reserve', cost: 10, benefit: 25 },
+      { id: 'opt-2', label: 'Nitro boost charge', cost: 15, benefit: 35 },
+    );
+  }
+
+  const advisor = new ResourceAdvisor();
+  const advice = advisor.getRecommendations({ items, budget: 50 * RESOURCE_UNIT });
+
+  return {
+    required: true,
+    plans: advice.plans.map((p) => ({
+      id: p.id,
+      label: p.label,
+      method: p.method,
+      feasible: p.feasible,
+      explanation: p.explanation,
+      items: p.selectedIds,
+      cost: p.totalCost,
+      budget: p.budget,
+      budgetLabel: p.budgetLabel,
+    })),
+  };
+}
+
 export const productionRaceSetupProvider: RaceSetupProvider = {
   circuits: circuitsCatalog,
   championshipCircuitId: 'circuit-grand-prix',
 
-  getRecommendations(request: RaceSetupRequest): ResourceAdvice {
-    const circuit = circuitsCatalog.find((c) => c.id === request.circuitId);
-    if (!circuit) return { required: false, plans: [] };
-
-    // Extract pickup candidates from track vertices
-    const items: ResourceItem[] = circuit.track.vertices
-      .filter((v) => v.kind === 'fuel' || v.kind === 'nitro')
-      .map((v) => ({
-        id: `pickup-${v.id}`,
-        label: v.kind === 'fuel' ? `Fuel Depot at Vertex ${v.id}` : `Nitro Boost at Vertex ${v.id}`,
-        cost: v.kind === 'fuel' ? 20 : 15,
-        benefit: v.kind === 'fuel' ? 45 : 35,
-      }));
-
-    if (items.length === 0) {
-      items.push(
-        { id: 'opt-1', label: 'Safety fuel reserve', cost: 10, benefit: 25 },
-        { id: 'opt-2', label: 'Nitro boost charge', cost: 15, benefit: 35 },
-      );
-    }
-
-    const advisor = new ResourceAdvisor();
-    const advice = advisor.getRecommendations({ items, budget: 50 * RESOURCE_UNIT });
-
-    return {
-      required: true,
-      plans: advice.plans.map((p) => ({
-        id: p.id,
-        label: p.label,
-        method: p.method,
-        feasible: p.feasible,
-        explanation: p.explanation,
-        items: p.selectedIds,
-        cost: p.totalCost,
-        budget: p.budget,
-        budgetLabel: p.budgetLabel,
-      })),
-    };
-  },
+  getRecommendations: computeResourceAdvice,
 
   createRace(request: RaceSetupRequest): RaceDriver {
     if (request.circuitId === 'driving-demo') {
@@ -483,17 +491,62 @@ export const productionRaceSetupProvider: RaceSetupProvider = {
     const edges = raw.edges as Edge[];
     const circuitChoice = circuitsCatalog.find((c) => c.id === request.circuitId)!;
 
+    // Apply Resource Plan decisions (Bug 4 fix: resourcePlanId changes gameplay)
+    let initialFuel = circuitChoice.initialFuel;
+    let initialNitro = request.initialNitro ?? 2;
+
+    if (request.resourcePlanId) {
+      const advice = computeResourceAdvice(request);
+      const chosen = advice.plans.find((p) => p.id === request.resourcePlanId) ?? advice.plans[0];
+      if (chosen) {
+        const hasFuel = chosen.items.some((id) => id.includes('pickup-') || id.includes('opt-1'));
+        const hasNitro = chosen.items.some((id) => id.includes('nitro') || id.includes('opt-2'));
+        if (hasFuel) initialFuel = Math.min(MAX_FUEL, initialFuel + 10);
+        if (hasNitro) initialNitro = Math.min(3, initialNitro + 1);
+      }
+    }
+
+    // Schedule events when enabled (Bug 2 fix: supply dynamic events)
+    const events: RaceEventInput[] = [];
+    if (request.eventsEnabled) {
+      const openEdge = edges.find((e) => !e.isShortcut && e.status === 'Open');
+      const scEdge = edges.find((e) => e.isShortcut);
+      const secondEdge = edges.filter((e) => !e.isShortcut && e.status === 'Open')[2];
+
+      if (openEdge) {
+        events.push({
+          eventId: 'speed-restriction-sector',
+          triggerTime: 12,
+          effect: { type: 'speed-restriction', edgeId: openEdge.id, duration: 15, speedCap: 45 },
+        });
+      }
+      if (secondEdge) {
+        events.push({
+          eventId: 'oil-spill-hazard',
+          triggerTime: 24,
+          effect: { type: 'oil-spill', edgeId: secondEdge.id, duration: 14, difficultyPenalty: 2, speedCap: 40 },
+        });
+      }
+      if (scEdge) {
+        events.push(
+          { eventId: 'shortcut-lockdown', triggerTime: 18, effect: { type: 'road-blockage', edgeId: scEdge.id, blocked: true } },
+          { eventId: 'shortcut-cleared', triggerTime: 36, effect: { type: 'road-blockage', edgeId: scEdge.id, blocked: false } },
+        );
+      }
+    }
+
     const engine = new RaceEngine({
       trackName: raw.name,
       vertices,
       edges,
       startVertexId: vertices.find((v) => v.type === 'Start')?.id ?? 0,
       laps: request.laps,
-      initialNitro: request.initialNitro,
-      initialFuel: circuitChoice.initialFuel,
+      initialNitro,
+      initialFuel,
       preset: request.preset
         ? (request.preset.charAt(0).toUpperCase() + request.preset.slice(1) as CostPreset)
         : 'Balanced',
+      events: events.length > 0 ? events : undefined,
     });
 
     return new LiveEngineDriver(engine, circuitChoice.track);

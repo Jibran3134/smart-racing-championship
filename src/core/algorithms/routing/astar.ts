@@ -85,6 +85,23 @@ function euclidean(graph: TrackGraph, u: number, v: number): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
+/**
+ * Validate that geometric Euclidean distance is a valid lower bound on actual edge distances.
+ * If any edge is shorter than the straight-line distance between its endpoints,
+ * the heuristic is inadmissible and A* must fall back to h = 0 (Dijkstra behavior).
+ */
+function isEuclideanAdmissible(graph: TrackGraph): boolean {
+  for (const edge of graph.getEdges()) {
+    if (edge.status === 'Blocked') continue;
+    const euclidDist = euclidean(graph, edge.from, edge.to);
+    // If edge.distance is shorter than euclidean straight line, heuristic overestimates
+    if (edge.distance < euclidDist * 0.999) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // astar
 // ---------------------------------------------------------------------------
@@ -115,9 +132,11 @@ export function astar(
     comparisons: 0,
   };
 
-  const minCPM = buildMinCostPerMetre(graph, preset);
+  // Safeguard: validate geometric bounds before using Euclidean heuristic; fallback to h = 0
+  const euclideanValid = isEuclideanAdmissible(graph);
+  const minCPM = euclideanValid ? buildMinCostPerMetre(graph, preset) : 0;
 
-  // h(u): admissible heuristic
+  // h(u): admissible heuristic (falls back to 0 when geometric bounds are invalid)
   function h(u: number): number {
     if (minCPM === 0) return 0;
     return euclidean(graph, u, target) * minCPM;

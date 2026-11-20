@@ -140,4 +140,24 @@ describe('Routing Algorithms: Dijkstra, A*, Leg Planner (Alishba)', () => {
     // Safety preset penalizes difficulty/risk and avoids top branch, choosing bottom [0, 2, 3]
     expect(safetyRoute!.path).toEqual([0, 2, 3]);
   });
+
+  it('A* falls back to h=0 when geometric bounds are invalid, matching Dijkstra optimality', () => {
+    // Non-Euclidean embedding where edge distance < Euclidean distance
+    const abstractVertices: Vertex[] = [
+      { id: 0, x: 0, y: 0, type: 'Start', active: true },
+      { id: 1, x: 1000, y: 1000, type: 'Intersection', active: true },
+      { id: 2, x: 2000, y: 2000, type: 'Finish', active: true },
+    ];
+    const abstractEdges: Edge[] = [
+      { id: 'short-direct', from: 0, to: 1, distance: 1, baseTime: 1, fuelCost: 1, difficulty: 1, status: 'Open', directed: false, isShortcut: false },
+      { id: 'short-dest', from: 1, to: 2, distance: 1, baseTime: 1, fuelCost: 1, difficulty: 1, status: 'Open', directed: false, isShortcut: false },
+    ];
+    const graph = new TrackGraph(abstractVertices, abstractEdges);
+    const dijkstraRes = dijkstra(graph, 0, 2, 'Balanced');
+    const astarRes = astar(graph, 0, 2, 'Balanced');
+    expect(astarRes).not.toBeNull();
+    expect(dijkstraRes).not.toBeNull();
+    expect(astarRes!.distance).toBe(dijkstraRes!.distance);
+    expect(astarRes!.path).toEqual(dijkstraRes!.path);
+  });
 });

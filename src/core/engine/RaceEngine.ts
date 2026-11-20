@@ -21,7 +21,7 @@ import type { EventWorld, RaceEventInput } from '../events/EventProcessor';
 import { MainRouteBot } from './opponents/MainRouteBot';
 import { ShortcutBot } from './opponents/ShortcutBot';
 import { ShortestDistanceBot } from './opponents/ShortestDistanceBot';
-import type { Vertex, Edge, CostPreset, RaceResult } from '../types';
+import type { Vertex, Edge, EdgeStatus, CostPreset, RaceResult, RouteResult } from '../types';
 import {
   MAX_FUEL,
   INITIAL_NITRO,
@@ -30,6 +30,7 @@ import {
   NITRO_DURATION_SECONDS,
   NITRO_FUEL_MULTIPLIER,
   REFUEL_STOP_SECONDS,
+  REFUEL_THRESHOLD,
   MAX_STATION_PURCHASE,
   fuelMultiplier,
   pointsForPosition,
@@ -103,9 +104,11 @@ export class RaceEngine {
   private readonly initialFuel: number;
   private readonly checkpointIds: number[] = [];
   private readonly cars: EngineCarState[] = [];
-  private readonly processor: EventProcessor;
+  private processor!: EventProcessor;
   private readonly feed: EngineFeedMessage[] = [];
   private readonly botMap = new Map<number, MainRouteBot | ShortcutBot | ShortestDistanceBot>();
+  /** Stores original event inputs so restart() can recreate the processor cleanly. */
+  private readonly initialEvents: readonly RaceEventInput[];
 
   private phase: 'ready' | 'countdown' | 'running' | 'finished' = 'ready';
   private time: number = -3; // 3-second countdown
@@ -119,6 +122,7 @@ export class RaceEngine {
     this.startId = setup.startVertexId;
     this.initialNitro = setup.initialNitro ?? INITIAL_NITRO;
     this.initialFuel = setup.initialFuel ?? MAX_FUEL;
+    this.initialEvents = setup.events ? [...setup.events] : [];
 
     // 1. Build TrackGraph
     this.graph = new TrackGraph(setup.vertices, setup.edges);
@@ -130,43 +134,9 @@ export class RaceEngine {
     this.checkpointIds = checkpoints.map((c) => c.id);
 
     // 3. Connect EventProcessor via EventWorld
-    const world: EventWorld = {
-      getEdge: (id) => {
-        const edge = this.graph.getEdge(id);
-        if (!edge) return undefined;
-        return {
-          status: edge.status,
-          difficulty: edge.difficulty,
-          speedCap: edge.speedCap,
-          isShortcut: edge.isShortcut,
-        };
-      },
-      getVertex: (id) => {
-        const vertex = this.graph.getVertex(id);
-        if (!vertex) return undefined;
-        const type = vertex.type === 'FuelStation' || vertex.type === 'NitroPickup' ? vertex.type : 'Other';
-        return { type, active: vertex.active };
-      },
-      setEdgeState: (id, state) => {
-        const edge = this.graph.getEdge(id);
-        if (edge) {
-          if (state.status === 'Blocked') this.graph.blockEdge(id);
-          else if (state.status === 'Open') this.graph.unblockEdge(id);
-          else this.graph.setEdgeRestriction(id, state.speedCap);
-        }
-      },
-      setVertexActive: (id, active) => {
-        this.graph.setStationActive(id, active);
-      },
-    };
-    this.processor = new EventProcessor(world);
-    if (setup.events) {
-      for (const ev of setup.events) {
-        this.processor.schedule(ev);
-      }
-    }
+    this._initProcessor();
 
-    // 4. Set up racers (Default 4 racers if not specified: Player + 3 AI bots)
+    // 4. Set up racers with distinct strategies
     const racers = setup.racers ?? [
       { id: 1, name: 'Player', isHuman: true, speed: 85, preset: setup.preset ?? 'Balanced' },
       { id: 2, name: 'Main Apex', isHuman: false, speed: 88, strategy: 'main-route' },
@@ -175,25 +145,44 @@ export class RaceEngine {
     ];
 
     racers.forEach((def, index) => {
-      // Create bot instance if AI
+      const fullPath: number[] = [this.startId];
+
       if (!def.isHuman) {
         const strat = def.strategy ?? 'main-route';
-        if (strat === 'shortcut') this.botMap.set(def.id, new ShortcutBot(`bot-${def.id}`, def.name));
-        else if (strat === 'shortest-distance') this.botMap.set(def.id, new ShortestDistanceBot(`bot-${def.id}`, def.name));
-        else this.botMap.set(def.id, new MainRouteBot(`bot-${def.id}`, def.name));
-      }
-
-      // Initial route through all checkpoints back to start
-      const preset: CostPreset = def.preset ?? 'Balanced';
-      const legs = planRoute(this.graph, this.startId, this.checkpointIds, this.startId, preset);
-      const fullPath: number[] = [this.startId];
-      for (const leg of legs) {
-        if (leg && leg.path.length > 1) {
-          fullPath.push(...leg.path.slice(1));
+        if (strat === 'shortcut') {
+          this.botMap.set(def.id, new ShortcutBot(`bot-${def.id}`, def.name));
+          const legs = planRoute(this.graph, this.startId, this.checkpointIds, this.startId, 'Speed');
+          for (const leg of legs) {
+            if (leg && leg.path.length > 1) fullPath.push(...leg.path.slice(1));
+          }
+        } else if (strat === 'shortest-distance') {
+          this.botMap.set(def.id, new ShortestDistanceBot(`bot-${def.id}`, def.name));
+          const distWeights = { distance: 1.0, time: 0, fuel: 0, difficulty: 0, obstacle: 0 };
+          let cur = this.startId;
+          for (const wp of [...this.checkpointIds, this.startId]) {
+            const leg = dijkstra(this.graph, cur, wp, distWeights);
+            if (leg && leg.path.length > 1) {
+              fullPath.push(...leg.path.slice(1));
+              cur = wp;
+            }
+          }
+        } else {
+          // Main route bot gets and stores the pre-computed balanced main route
+          const legs = planRoute(this.graph, this.startId, this.checkpointIds, this.startId, 'Balanced');
+          for (const leg of legs) {
+            if (leg && leg.path.length > 1) fullPath.push(...leg.path.slice(1));
+          }
+          this.botMap.set(def.id, new MainRouteBot(`bot-${def.id}`, def.name, fullPath));
+        }
+      } else {
+        const preset: CostPreset = def.preset ?? 'Balanced';
+        const legs = planRoute(this.graph, this.startId, this.checkpointIds, this.startId, preset);
+        for (const leg of legs) {
+          if (leg && leg.path.length > 1) fullPath.push(...leg.path.slice(1));
         }
       }
 
-      // Find initial edge (or reverse edge)
+      // Find initial edge
       const edge = this._findEdgeBetween(fullPath[fullPath.length - 2] ?? this.startId, this.startId);
       const gridOffset = Math.min((edge ? edge.distance * 0.8 : 20), index * 18);
 
@@ -226,6 +215,68 @@ export class RaceEngine {
     });
   }
 
+  private _initProcessor(): void {
+    const world: EventWorld = {
+      getEdge: (id) => {
+        const edge = this.graph.getEdge(id);
+        if (!edge) return undefined;
+        return {
+          status: edge.status,
+          difficulty: edge.difficulty,
+          speedCap: edge.speedCap,
+          isShortcut: edge.isShortcut,
+        };
+      },
+      getVertex: (id) => {
+        const vertex = this.graph.getVertex(id);
+        if (!vertex) return undefined;
+        const type = vertex.type === 'FuelStation' || vertex.type === 'NitroPickup' ? vertex.type : 'Other';
+        return { type, active: vertex.active };
+      },
+      setEdgeState: (id, state) => {
+        const edge = this.graph.getEdge(id);
+        if (edge) {
+          const mutableEdge = edge as {
+            status: EdgeStatus;
+            difficulty: number;
+            speedCap?: number;
+          };
+          mutableEdge.status = state.status;
+          mutableEdge.difficulty = state.difficulty;
+          if (state.speedCap !== undefined) {
+            mutableEdge.speedCap = state.speedCap;
+          } else {
+            delete mutableEdge.speedCap;
+          }
+
+          const revEdge = this.graph.getEdge(`${id}~rev`);
+          if (revEdge) {
+            const mutableRev = revEdge as {
+              status: EdgeStatus;
+              difficulty: number;
+              speedCap?: number;
+            };
+            mutableRev.status = state.status;
+            mutableRev.difficulty = state.difficulty;
+            if (state.speedCap !== undefined) {
+              mutableRev.speedCap = state.speedCap;
+            } else {
+              delete mutableRev.speedCap;
+            }
+          }
+        }
+      },
+      setVertexActive: (id, active) => {
+        this.graph.setStationActive(id, active);
+      },
+    };
+
+    this.processor = new EventProcessor(world);
+    for (const ev of this.initialEvents) {
+      this.processor.schedule(ev);
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Control methods
   // -------------------------------------------------------------------------
@@ -243,6 +294,10 @@ export class RaceEngine {
     this.accumulator = 0;
     this.feed.length = 0;
     this.results = [];
+
+    // Recreate processor cleanly so internal clock starts at 0 without monotonic time error
+    this._initProcessor();
+
     for (const car of this.cars) {
       car.status = 'racing';
       car.reason = undefined;
@@ -476,21 +531,23 @@ export class RaceEngine {
         return;
       }
 
-      // Start new lap
+      // Start new lap — recalculate full route from current position
       car.checkpoint = 0;
       car.routeIndex = -1;
+      this._recalculateCarRoute(car);
     }
 
     // Vertex services: Fuel Station & Nitro Pickup
     const vertex = this.graph.getVertex(arrivedVertexId);
     if (vertex && vertex.active) {
-      if (vertex.type === 'FuelStation' && car.fuel < MAX_FUEL * 0.25) {
+      if (vertex.type === 'FuelStation' && car.fuel < MAX_FUEL * 0.75) {
         car.fuel = Math.min(MAX_FUEL, car.fuel + MAX_STATION_PURCHASE);
         car.stoppingUntil = this.time + dt + REFUEL_STOP_SECONDS;
         car.status = 'waiting';
         car.reason = 'Pit stop refuelling.';
         car.speed = 0;
         this._log(`${car.name}: Pit stop refuelling (+${MAX_STATION_PURCHASE} fuel).`);
+        this._recalculateCarRoute(car);
       }
       if (vertex.type === 'NitroPickup' && car.nitro < MAX_NITRO) {
         if (this.processor.collectNitro(arrivedVertexId)) {
@@ -500,10 +557,16 @@ export class RaceEngine {
       }
     }
 
-    // Advance to next edge in planned route
-    car.routeIndex++;
-    if (car.routeIndex >= car.route.length - 1) {
+    // Emergency refuel detour check when fuel critically low (< 25%)
+    const isHeadingToStation = car.route.slice(Math.max(0, car.routeIndex)).some((v) => this.graph.getVertex(v)?.type === 'FuelStation');
+    if (car.fuel <= MAX_FUEL * REFUEL_THRESHOLD && !isHeadingToStation && vertex?.type !== 'FuelStation') {
       this._recalculateCarRoute(car);
+    } else {
+      // Advance to next edge in planned route
+      car.routeIndex++;
+      if (car.routeIndex >= car.route.length - 1) {
+        this._recalculateCarRoute(car);
+      }
     }
 
     const nextFrom = car.route[car.routeIndex];
@@ -518,16 +581,41 @@ export class RaceEngine {
   }
 
   private _recalculateCarRoute(car: EngineCarState): void {
-    const curVertex = car.reverse
-      ? this.graph.getEdge(car.edgeId)?.from ?? this.startId
-      : this.graph.getEdge(car.edgeId)?.to ?? this.startId;
+    // Bug fix: when reverse===false the car travels from→to, so the car is AT edge.to upon arrival.
+    // When reverse===true the car travels to→from, so the car is AT edge.from upon arrival.
+    const edge = this.graph.getEdge(car.edgeId);
+    const curVertex = edge
+      ? (car.reverse ? edge.from : edge.to)
+      : this.startId;
 
     const remainingCheckpoints = this.checkpointIds.slice(car.checkpoint);
     const bot = this.botMap.get(car.id);
 
-    const nextLeg = bot
-      ? bot.planNextLeg(this.graph, curVertex, remainingCheckpoints, this.startId, car.fuel)
-      : dijkstra(this.graph, curVertex, remainingCheckpoints[0] ?? this.startId, 'Balanced');
+    let nextLeg: RouteResult | null = null;
+    if (bot) {
+      nextLeg = bot.planNextLeg(this.graph, curVertex, remainingCheckpoints, this.startId, car.fuel);
+    } else {
+      // Human player: if low on fuel, divert to nearest fuel station
+      if (car.fuel <= MAX_FUEL * REFUEL_THRESHOLD) {
+        let nearestStation: number | null = null;
+        let minStationDist = Infinity;
+        for (const v of this.graph.getVertices()) {
+          if (v.type === 'FuelStation' && v.active) {
+            const leg = dijkstra(this.graph, curVertex, v.id, 'Balanced');
+            if (leg && leg.distance < minStationDist) {
+              minStationDist = leg.distance;
+              nearestStation = v.id;
+            }
+          }
+        }
+        if (nearestStation !== null && nearestStation !== curVertex) {
+          nextLeg = dijkstra(this.graph, curVertex, nearestStation, 'Balanced');
+        }
+      }
+      if (!nextLeg) {
+        nextLeg = dijkstra(this.graph, curVertex, remainingCheckpoints[0] ?? this.startId, 'Balanced');
+      }
+    }
 
     if (nextLeg && nextLeg.path.length > 1) {
       car.route = nextLeg.path;
@@ -540,6 +628,25 @@ export class RaceEngine {
     for (const batch of batches) {
       for (const ev of batch.events) {
         this._log(`Event ${ev.eventId}: ${ev.outcome}`);
+      }
+      // Dynamic cost changes: road blockage, speed restriction, or oil spill triggers rerouting
+      if (batch.changedEdges.length > 0) {
+        for (const car of this.cars) {
+          if (car.status === 'racing') {
+            const upcoming = car.route.slice(Math.max(0, car.routeIndex));
+            let affected = false;
+            for (let i = 0; i < upcoming.length - 1; i++) {
+              const e = this._findEdgeBetween(upcoming[i], upcoming[i + 1]);
+              if (e && batch.changedEdges.includes(e.id)) {
+                affected = true;
+                break;
+              }
+            }
+            if (affected) {
+              this._recalculateCarRoute(car);
+            }
+          }
+        }
       }
     }
   }

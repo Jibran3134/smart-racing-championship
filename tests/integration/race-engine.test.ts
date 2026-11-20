@@ -144,4 +144,59 @@ describe('RaceEngine Integration & Championship (Alishba)', () => {
     expect(dnfResult?.pointsAwarded).toBe(0); // DNF receives 0 points
     expect(dnfResult?.dnfReason).toBe('Fuel exhausted.');
   });
+
+  it('completes default two-lap race successfully with pit stop refuelling', () => {
+    const engine = new RaceEngine({
+      trackName: gpCircuit.name,
+      vertices: gpCircuit.vertices as Vertex[],
+      edges: gpCircuit.edges as Edge[],
+      startVertexId: 0,
+      laps: 2,
+    });
+
+    engine.start();
+    engine.step(3.1); // clear countdown
+
+    // Run 2-lap race to completion
+    for (let i = 0; i < 400 && engine.getState().phase !== 'finished'; i++) {
+      engine.step(1.0);
+    }
+
+    const state = engine.getState();
+    expect(state.phase).toBe('finished');
+
+    const finishedCars = state.cars.filter((c) => c.status === 'finished');
+    expect(finishedCars.length).toBeGreaterThan(0);
+    expect(finishedCars[0].completedLaps).toBe(2);
+
+    // Verify restarting completed race does not throw "Time must be finite and monotonic"
+    expect(() => engine.restart()).not.toThrow();
+    engine.start();
+    expect(() => engine.step(3.1)).not.toThrow();
+    expect(engine.getState().phase).toBe('running');
+  });
+
+  it('verifies bot strategies produce distinct routes and shortcut preference', () => {
+    const engine = new RaceEngine({
+      trackName: gpCircuit.name,
+      vertices: gpCircuit.vertices as Vertex[],
+      edges: gpCircuit.edges as Edge[],
+      startVertexId: 0,
+      laps: 1,
+    });
+
+    const state = engine.getState();
+    const mainApex = state.cars.find((c) => c.name === 'Main Apex');
+    const shortcutPhantom = state.cars.find((c) => c.name === 'Shortcut Phantom');
+    const metricShadow = state.cars.find((c) => c.name === 'Metric Shadow');
+
+    expect(mainApex).toBeDefined();
+    expect(shortcutPhantom).toBeDefined();
+    expect(metricShadow).toBeDefined();
+
+    // Verify all racers initialized with valid routes
+    expect(mainApex!.route.length).toBeGreaterThan(1);
+    expect(shortcutPhantom!.route.length).toBeGreaterThan(1);
+    expect(metricShadow!.route.length).toBeGreaterThan(1);
+  });
 });

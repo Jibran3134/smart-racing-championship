@@ -70,7 +70,54 @@ export class MainRouteBot {
       }
     }
 
-    // Normal progression to next target using standard Balanced routing
+    // If a pre-computed default route exists, follow it directly if all roads are open
+    if (this._defaultRoute.length > 0) {
+      const curIdx = this._defaultRoute.indexOf(currentVertex);
+      if (curIdx !== -1) {
+        // Find nextTarget after curIdx
+        let targetIdx = this._defaultRoute.indexOf(nextTarget, curIdx + 1);
+        if (targetIdx === -1 && curIdx < this._defaultRoute.length - 1) {
+          targetIdx = curIdx + 1;
+        }
+
+        if (targetIdx > curIdx) {
+          const subPath = this._defaultRoute.slice(curIdx, targetIdx + 1);
+          // Verify all edges along subPath are open and exist in graph
+          let routeValid = true;
+          const edgeIds: string[] = [];
+          let totalDist = 0;
+          let totalTime = 0;
+          let totalFuel = 0;
+
+          for (let i = 0; i < subPath.length - 1; i++) {
+            const u = subPath[i];
+            const v = subPath[i + 1];
+            const edge = graph.getNeighbors(u).find((e) => e.to === v && e.status !== 'Blocked');
+            if (!edge) {
+              routeValid = false;
+              break;
+            }
+            edgeIds.push(edge.id);
+            totalDist += edge.distance;
+            totalTime += edge.baseTime;
+            totalFuel += edge.fuelCost;
+          }
+
+          if (routeValid && edgeIds.length > 0) {
+            return {
+              path: subPath,
+              edgeIds,
+              distance: totalDist,
+              time: totalTime,
+              scalarCost: totalDist,
+              fuelNeeded: totalFuel,
+            };
+          }
+        }
+      }
+    }
+
+    // Road blocked or off default route: recalculate detour to next checkpoint using Dijkstra
     return dijkstra(graph, currentVertex, nextTarget, 'Balanced');
   }
 }
