@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   productionPresetProvider,
   productionChampionshipProvider,
@@ -9,6 +9,7 @@ import { executeLabAlgorithm, defaultLabInputs } from '../../src/ui/adapters/alg
 import { previewTrack } from '../../src/ui/fixtures/preview-track';
 
 describe('Production Adapters Integration', () => {
+  beforeEach(() => productionChampionshipProvider.reset?.());
   it('productionPresetProvider produces valid routes across all 4 presets', () => {
     const res = productionPresetProvider.compare({
       source: 0,
@@ -43,7 +44,9 @@ describe('Production Adapters Integration', () => {
     expect(top2[1].racerId).toBe(mergeRanking[1].racerId);
 
     const history = productionChampionshipProvider.pointsHistory;
-    expect(history.length).toBeGreaterThan(0);
+    expect(history).toEqual([]);
+    expect(productionChampionshipProvider.races).toEqual([]);
+    expect(mergeRanking.every((racer) => racer.points === 0 && racer.wins === 0)).toBe(true);
   });
 
   it('productionRaceSetupProvider exposes all 3 official circuits and creates live driver', () => {

@@ -34,7 +34,7 @@ export function RaceSetup({ mode, provider, showLabels, onPrepared, onExplore }:
     catch (failure) { return { data: null, error: failure instanceof Error ? failure.message : 'Resource recommendations are unavailable.' }; }
   }, [provider, request]);
   const selectedPlan = selection?.key === requestKey ? advice.data?.plans.find((plan) => plan.id === selection.id && plan.feasible) : undefined;
-  const championshipReady = mode !== 'championship' || circuit?.kind === 'demo' || provider.championshipCircuitId === circuit?.id;
+  const championshipReady = mode !== 'championship' || !provider.championshipComplete && (circuit?.kind === 'demo' || provider.championshipCircuitId === circuit?.id);
   const canPrepare = Boolean(request && championshipReady && !advice.error && (!advice.data?.required || selectedPlan) && !busy);
 
   const prepare = async () => {
@@ -53,6 +53,7 @@ export function RaceSetup({ mode, provider, showLabels, onPrepared, onExplore }:
     }
   };
 
+  if (mode === 'championship' && provider.championshipComplete) return <section className="panel integration-state"><h2>Championship complete</h2><p>View the championship dashboard to see the champion or start a new season.</p></section>;
   if (!circuit || !config) return <section className="panel integration-state" role="alert"><h2>Race setup unavailable</h2><p>{catalogue.error}</p></section>;
   const update = (change: Partial<typeof config>) => { setSettings({ ...config, ...change }); setError(''); };
   return <>

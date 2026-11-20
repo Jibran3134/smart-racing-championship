@@ -22,6 +22,7 @@ export interface RaceSetupProvider {
   circuits: readonly CircuitChoice[];
   /** Engine selects the next championship circuit; UI cannot override its order. */
   championshipCircuitId?: string;
+  championshipComplete?: boolean;
   getRecommendations?(request: RaceSetupRequest): ResourceAdvice;
   createRace(request: RaceSetupRequest, signal?: AbortSignal): RaceDriver | Promise<RaceDriver>;
 }
@@ -45,6 +46,7 @@ export function validateCircuitChoices(provider: RaceSetupProvider): void {
 
 export function validateSetupRequest(provider: RaceSetupProvider, request: RaceSetupRequest): CircuitChoice {
   validateCircuitChoices(provider);
+  if (request.mode === 'championship' && provider.championshipComplete) throw new Error('The championship is complete. Start a new championship to race again.');
   if (!['quick', 'championship'].includes(request.mode)) throw new Error('The race mode is invalid.');
   const circuit = provider.circuits.find((entry) => entry.id === request.circuitId);
   if (!circuit || !circuit.lapOptions.includes(request.laps)) throw new Error('Select a supported circuit and lap count.');

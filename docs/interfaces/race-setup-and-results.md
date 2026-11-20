@@ -1,6 +1,20 @@
 # Race setup and completed-session handoff
 
-Iteration 5, 17 November 2026. These are presentation adapters in `src/ui/adapters/`; shared core records and configuration remain unfrozen. No routing, DP/Greedy, championship scoring or official circuit generator was added by this iteration.
+Originally introduced in Iteration 5, 17 November 2026. These are presentation adapters in `src/ui/adapters/`. The production lifecycle and source-cost handoff below were integrated on 20 November 2026.
+
+## Production championship lifecycle
+
+Production starts with registered racers and no historical results. `ChampionshipSession` in `src/adapters/championship-session.ts` owns the ordered calendar: Grand Prix Raceway, Desert Canyon, City Grid. `ChampionshipManager` remains the source of scoring and ranking. A prepared championship driver records its terminal results once; quick races and the driving demo never update season standings. Deterministic season/round IDs replace wall-clock IDs. A replay of an already scored driver cannot score again, and preparing a replacement grid invalidates the preceding grid for that round.
+
+`championshipCircuitId` is a getter for the next round. `championshipComplete` becomes true only after all three rounds; completed seasons have no next circuit. Direct creation and the setup UI both reject out-of-order/completed championship grids. The dashboard offers Start/Continue championship and Start new championship, displays the champion after the final round, and receives points-history keys matching its chart series. A DNF is never counted as a win.
+
+`ChampionshipProvider.reset()` clears season statistics/history, restores Grand Prix as the next circuit and invalidates prepared drivers from the previous season. Resetting preserves the separate session archive. Season and session state remain in tab memory; reload starts a fresh season. Engine physics, resource planning, event effects and the engine's restart implementation are separate integration responsibilities.
+
+## Original routing attributes
+
+Official `MapRoad` records carry a `routing` snapshot of `distance`, `baseTime`, `fuelCost`, `difficulty` and optional `speedCap`; vertices preserve their source `coreType`. Explorer and both routing Lab adapters construct their graphs from these fields, retaining edited road statuses. Map coordinate changes cannot replace physical road costs. Legacy demonstration maps without source attributes retain their existing synthetic cost fallback; official circuit maps always include the snapshot.
+
+Preset results and Lab summaries retain the full optimized scalar cost. Estimated time includes speed caps using the same effective-time rule as the scalar cost function. Exported/imported Lab traces retain source road attributes. Explorer analysis overrides remain separate from race-engine mutation.
 
 ## Composition
 

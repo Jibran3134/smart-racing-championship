@@ -1,4 +1,6 @@
-/** Rendering-only view models; these do not freeze the shared graph contract. */
+import type { Edge, VertexType } from '../../../core/types';
+
+/** Map geometry with optional source data for production algorithm adapters. */
 export interface MapVertex {
   id: number;
   x: number;
@@ -7,6 +9,7 @@ export interface MapVertex {
   kind: 'start' | 'checkpoint' | 'intersection' | 'fuel' | 'nitro' | 'dead-end';
   checkpointOrder?: number;
   active?: boolean;
+  coreType?: VertexType;
 }
 export interface MapRoad {
   id: string;
@@ -15,6 +18,8 @@ export interface MapRoad {
   status: 'open' | 'blocked' | 'restricted';
   shortcut?: boolean;
   directed?: boolean;
+  /** Original road attributes; geometry must never replace these routing costs. */
+  routing?: Pick<Edge, 'distance' | 'baseTime' | 'fuelCost' | 'difficulty' | 'speedCap'>;
 }
 export interface TrackMapData {
   name: string;

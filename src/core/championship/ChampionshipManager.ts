@@ -92,7 +92,7 @@ export class ChampionshipManager {
       }
 
       entry.totalPoints += res.pointsAwarded;
-      if (res.finishPosition === 1) {
+      if (res.finishPosition === 1 && res.finishTime !== null) {
         entry.wins += 1;
       }
       entry.sumOfFinishPositions += res.finishPosition;

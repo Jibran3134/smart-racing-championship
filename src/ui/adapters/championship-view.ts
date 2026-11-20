@@ -22,6 +22,8 @@ export interface ChampionshipProvider {
   /** Optional presentation identity for highlighting the human racer. */
   humanRacerId?: number;
   complete: boolean;
+  /** Starts a fresh season and invalidates unfinished grids from the old season. */
+  reset?(): void;
   races: readonly { id: string; name: string; results: readonly ResultView[] }[];
   /** Ordered core outputs. The UI never computes a championship comparator. */
   getRanking(method: RankingMethod): readonly StandingView[];

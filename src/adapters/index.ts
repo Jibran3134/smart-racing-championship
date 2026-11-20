@@ -22,17 +22,18 @@ import { mergeSort } from '../core/algorithms/sorting/mergeSort';
 import { quickSort } from '../core/algorithms/sorting/quickSort';
 import { heapSort } from '../core/algorithms/sorting/heapSort';
 import { topK } from '../core/algorithms/sorting/topK';
-import { ChampionshipManager } from '../core/championship/ChampionshipManager';
+import { ChampionshipSession, racerNames } from './championship-session';
 import { primMST } from '../core/algorithms/mst/mst';
 import { placeTrackFeatures } from '../core/algorithms/backtracking/trackPlacement';
 import { RaceEngine } from '../core/engine/RaceEngine';
 import type { RaceEventInput } from '../core/events/EventProcessor';
 import { ResourceAdvisor } from '../core/resources/ResourceAdvisor';
 import { PRESET_WEIGHTS, MAX_FUEL, RESOURCE_UNIT } from '../core/config';
-import type { Vertex, Edge, CostPreset, ChampionshipEntry, ResourceItem } from '../core/types';
+import type { Vertex, Edge, CostPreset, ChampionshipEntry, ResourceItem, RouteResult } from '../core/types';
 
 import type { PresetProvider, PresetRouteView } from '../ui/adapters/preset-view';
 import { routePresets } from '../ui/adapters/preset-view';
+import { validateSetupRequest } from '../ui/adapters/race-setup';
 import type { ChampionshipProvider, StandingView, ResultView, RankingMethod } from '../ui/adapters/championship-view';
 import type { RaceSetupProvider, RaceSetupRequest, CircuitChoice, ResourceAdvice } from '../ui/adapters/race-setup';
 import type { RaceDriver, RaceViewState, RacerView } from '../ui/adapters/race-view';
@@ -86,6 +87,7 @@ function toTrackMapData(
       kind: toMapVertexKind(v.type),
       checkpointOrder: v.checkpointOrder,
       active: v.active,
+      coreType: v.type,
     })),
     roads: edges.map((e) => ({
       id: e.id,
@@ -94,6 +96,7 @@ function toTrackMapData(
       status: e.status === 'Blocked' ? 'blocked' : e.status === 'Restricted' ? 'restricted' : 'open',
       shortcut: e.isShortcut,
       directed: e.directed,
+      routing: { distance: e.distance, baseTime: e.baseTime, fuelCost: e.fuelCost, difficulty: e.difficulty, speedCap: e.speedCap },
     })),
   };
 }
@@ -104,7 +107,7 @@ function mapDataToCoreGraph(track: TrackMapData): { vertices: Vertex[]; edges: E
     id: v.id,
     x: v.x,
     y: v.y,
-    type: v.kind === 'start'
+    type: v.coreType ?? (v.kind === 'start'
       ? 'Start'
       : v.kind === 'checkpoint'
       ? 'Checkpoint'
@@ -114,7 +117,7 @@ function mapDataToCoreGraph(track: TrackMapData): { vertices: Vertex[]; edges: E
       ? 'NitroPickup'
       : v.kind === 'dead-end'
       ? 'DeadEnd'
-      : 'Intersection',
+      : 'Intersection'),
     checkpointOrder: v.checkpointOrder,
     active: v.active ?? true,
   }));
@@ -122,15 +125,17 @@ function mapDataToCoreGraph(track: TrackMapData): { vertices: Vertex[]; edges: E
   const edges: Edge[] = track.roads.map((r) => {
     const fromV = vMap.get(r.from)!;
     const toV = vMap.get(r.to)!;
-    const dist = Math.max(10, Math.round(Math.hypot(toV.x - fromV.x, toV.y - fromV.y)));
+    // Legacy demonstration maps have no source costs. Official maps always carry routing data.
+    const dist = r.routing?.distance ?? Math.max(10, Math.round(Math.hypot(toV.x - fromV.x, toV.y - fromV.y)));
     return {
       id: r.id,
       from: r.from,
       to: r.to,
       distance: dist,
-      baseTime: Math.max(2, Math.round(dist / 15)),
-      fuelCost: Math.max(1, Math.round(dist / 40)),
-      difficulty: r.shortcut ? 3 : 2,
+      baseTime: r.routing?.baseTime ?? Math.max(2, Math.round(dist / 15)),
+      fuelCost: r.routing?.fuelCost ?? Math.max(1, Math.round(dist / 40)),
+      difficulty: r.routing?.difficulty ?? (r.shortcut ? 3 : 2),
+      speedCap: r.routing?.speedCap,
       status: r.status === 'blocked' ? 'Blocked' : r.status === 'restricted' ? 'Restricted' : 'Open',
       isShortcut: Boolean(r.shortcut),
       directed: Boolean(r.directed),
@@ -138,6 +143,15 @@ function mapDataToCoreGraph(track: TrackMapData): { vertices: Vertex[]; edges: E
   });
 
   return { vertices, edges };
+}
+
+/** Display the same effective travel time used by the scalar cost function. */
+function estimatedRouteTime(graph: TrackGraph, route: RouteResult): number {
+  return route.edgeIds.reduce((total, id) => {
+    const edge = graph.getEdge(id)!;
+    return total + (edge.speedCap !== undefined && edge.speedCap > 0
+      ? Math.max(edge.baseTime, edge.distance / edge.speedCap) : edge.baseTime);
+  }, 0);
 }
 
 // ============================================================================
@@ -174,8 +188,8 @@ export const productionPresetProvider: PresetProvider = {
           edges: cleanEdges,
           metrics: {
             distance: leg.distance,
-            time: Math.round(leg.time * 10) / 10,
-            cost: Math.round(leg.scalarCost * 100) / 100,
+            time: estimatedRouteTime(graph, leg),
+            cost: leg.scalarCost,
           },
           weights,
         });
@@ -190,41 +204,8 @@ export const productionPresetProvider: PresetProvider = {
 // 2. Championship Provider
 // ============================================================================
 
-const champManager = new ChampionshipManager();
-const listeners = new Set<() => void>();
-
-function notifyChampionship() {
-  for (const listener of listeners) {
-    try { listener(); } catch { /* ignore */ }
-  }
-}
-
-// Initial registered racers
-const racerNames: Record<string, string> = {
-  '1': 'You',
-  '2': 'Main Apex',
-  '3': 'Shortcut Phantom',
-  '4': 'Metric Shadow',
-};
-
-for (const [id, name] of Object.entries(racerNames)) {
-  champManager.registerRacer({ racerId: id, name, isHuman: id === '1' });
-}
-
-// Initial seed championship data (historical races so dashboard has rich initial state)
-champManager.addRaceResults('race-1', 'Grand Prix Raceway', [
-  { raceId: 'race-1', racerId: '1', finishPosition: 1, finishTime: 98.4, fastestLap: 45.2, bonusPoints: 0, pointsAwarded: 25 },
-  { raceId: 'race-1', racerId: '2', finishPosition: 2, finishTime: 101.1, fastestLap: 46.0, bonusPoints: 0, pointsAwarded: 18 },
-  { raceId: 'race-1', racerId: '3', finishPosition: 3, finishTime: 103.5, fastestLap: 46.8, bonusPoints: 0, pointsAwarded: 15 },
-  { raceId: 'race-1', racerId: '4', finishPosition: 4, finishTime: 106.2, fastestLap: 47.9, bonusPoints: 0, pointsAwarded: 12 },
-]);
-
-champManager.addRaceResults('race-2', 'Desert Canyon', [
-  { raceId: 'race-2', racerId: '3', finishPosition: 1, finishTime: 110.2, fastestLap: 43.8, bonusPoints: 0, pointsAwarded: 25 },
-  { raceId: 'race-2', racerId: '1', finishPosition: 2, finishTime: 112.0, fastestLap: 44.5, bonusPoints: 0, pointsAwarded: 18 },
-  { raceId: 'race-2', racerId: '2', finishPosition: 3, finishTime: 113.8, fastestLap: 45.1, bonusPoints: 0, pointsAwarded: 15 },
-  { raceId: 'race-2', racerId: '4', finishPosition: 4, finishTime: 118.4, fastestLap: 48.0, bonusPoints: 0, pointsAwarded: 12 },
-]);
+const championship = new ChampionshipSession();
+const champManager = championship.manager;
 
 function toStandingView(entry: ChampionshipEntry): StandingView {
   const idNum = Number(entry.racerId);
@@ -243,8 +224,9 @@ export const productionChampionshipProvider: ChampionshipProvider = {
   kind: 'live',
   humanRacerId: 1,
   get complete() {
-    return champManager.getRaces().length >= 3;
+    return championship.complete;
   },
+  reset() { championship.reset(); },
   get races() {
     return champManager.getRaces().map((r) => ({
       id: r.id,
@@ -267,13 +249,13 @@ export const productionChampionshipProvider: ChampionshipProvider = {
     return champManager.getTopK(k).map(toStandingView);
   },
   get pointsHistory() {
-    return champManager.getPointsHistory();
+    return champManager.getPointsHistory().map((row) => ({
+      race: row.race,
+      ...Object.fromEntries(Object.entries(racerNames).map(([id, name]) => [`racer${id}`, row[name] ?? row[id] ?? 0])),
+    }));
   },
   subscribe(listener: () => void) {
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
-    };
+    return champManager.subscribe(listener);
   },
 };
 
@@ -349,10 +331,12 @@ class LiveEngineDriver implements RaceDriver {
   private readonly engine: RaceEngine;
   private readonly track: TrackMapData;
   private recorded = false;
+  private readonly recordResults?: (results: ReturnType<RaceEngine['getResults']>) => void;
 
-  constructor(engine: RaceEngine, track: TrackMapData) {
+  constructor(engine: RaceEngine, track: TrackMapData, recordResults?: (results: ReturnType<RaceEngine['getResults']>) => void) {
     this.engine = engine;
     this.track = track;
+    this.recordResults = recordResults;
   }
 
   start(): void {
@@ -364,17 +348,11 @@ class LiveEngineDriver implements RaceDriver {
     const state = this.engine.getState();
     if (state.phase === 'finished' && !this.recorded) {
       this.recorded = true;
-      champManager.addRaceResults(
-        `race-${Date.now()}`,
-        this.track.name,
-        this.engine.getResults(),
-      );
-      notifyChampionship();
+      this.recordResults?.(this.engine.getResults());
     }
   }
 
   restart(): void {
-    this.recorded = false;
     this.engine.restart();
   }
 
@@ -470,11 +448,13 @@ function computeResourceAdvice(request: RaceSetupRequest): ResourceAdvice {
 
 export const productionRaceSetupProvider: RaceSetupProvider = {
   circuits: circuitsCatalog,
-  championshipCircuitId: 'circuit-grand-prix',
+  get championshipCircuitId() { return championship.nextCircuitId; },
+  get championshipComplete() { return championship.complete; },
 
   getRecommendations: computeResourceAdvice,
 
   createRace(request: RaceSetupRequest): RaceDriver {
+    validateSetupRequest(productionRaceSetupProvider, request);
     if (request.circuitId === 'driving-demo') {
       return createDrivingDemo({
         laps: request.laps,
@@ -549,7 +529,8 @@ export const productionRaceSetupProvider: RaceSetupProvider = {
       events: events.length > 0 ? events : undefined,
     });
 
-    return new LiveEngineDriver(engine, circuitChoice.track);
+    const recordResults = request.mode === 'championship' ? championship.prepare(request.circuitId) : undefined;
+    return new LiveEngineDriver(engine, circuitChoice.track, recordResults);
   },
 };
 
@@ -617,21 +598,22 @@ export const productionLabAlgorithms: readonly LabAlgorithm[] = [
 
       emit({
         type: 'done',
-        message: res ? `Optimal path found: ${res.path.join(' → ')} (Cost: ${res.scalarCost.toFixed(2)})` : 'Destination is unreachable.',
+        message: res ? `Optimal path found: ${res.path.join(' → ')} (Cost: ${res.scalarCost})` : 'Destination is unreachable.',
         counters: { ...lastCounters },
         graph: { visited, routeEdges: res?.edgeIds.map((e) => (e.endsWith('~rev') ? e.slice(0, -4) : e)) ?? [] },
         state: {
           reachable: Boolean(res),
           distance: res ? `${res.distance} m` : 'none',
-          time: res ? `${res.time.toFixed(1)} s` : 'none',
-          cost: res ? res.scalarCost.toFixed(2) : 'none',
+          time: res ? estimatedRouteTime(graph, res) : 'none',
+          cost: res?.scalarCost ?? 'none',
         },
       });
 
       return {
         reachable: Boolean(res),
         distance: res?.distance ?? null,
-        cost: res ? Math.round(res.scalarCost * 100) / 100 : null,
+        time: res ? estimatedRouteTime(graph, res) : null,
+        cost: res?.scalarCost ?? null,
       };
     },
   },
@@ -695,20 +677,22 @@ export const productionLabAlgorithms: readonly LabAlgorithm[] = [
 
       emit({
         type: 'done',
-        message: res ? `Optimal path found: ${res.path.join(' → ')} (Cost: ${res.scalarCost.toFixed(2)})` : 'Destination is unreachable.',
+        message: res ? `Optimal path found: ${res.path.join(' → ')} (Cost: ${res.scalarCost})` : 'Destination is unreachable.',
         counters: { ...lastCounters },
         graph: { visited, routeEdges: res?.edgeIds.map((e) => (e.endsWith('~rev') ? e.slice(0, -4) : e)) ?? [] },
         state: {
           reachable: Boolean(res),
           distance: res ? `${res.distance} m` : 'none',
-          cost: res ? res.scalarCost.toFixed(2) : 'none',
+          time: res ? estimatedRouteTime(graph, res) : 'none',
+          cost: res?.scalarCost ?? 'none',
         },
       });
 
       return {
         reachable: Boolean(res),
         distance: res?.distance ?? null,
-        cost: res ? Math.round(res.scalarCost * 100) / 100 : null,
+        time: res ? estimatedRouteTime(graph, res) : null,
+        cost: res?.scalarCost ?? null,
       };
     },
   },

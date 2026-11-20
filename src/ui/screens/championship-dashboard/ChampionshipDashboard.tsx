@@ -14,6 +14,7 @@ interface DashboardProps {
   selectedSessionId?: string;
   onSelectSession?: (id: string) => void;
   onSetupRace?: () => void;
+  onNewChampionship?: () => void;
 }
 
 function readStandings(source: ChampionshipProvider | undefined, method: RankingMethod, topOnly: boolean, k: number) {
@@ -29,7 +30,7 @@ function readStandings(source: ChampionshipProvider | undefined, method: Ranking
     }
 }
 
-export function ChampionshipDashboard({ onRace, provider, initialExample = false, sessions = [], selectedSessionId = '', onSelectSession = () => {}, onSetupRace = onRace }: DashboardProps) {
+export function ChampionshipDashboard({ onRace, provider, initialExample = false, sessions = [], selectedSessionId = '', onSelectSession = () => {}, onSetupRace = onRace, onNewChampionship }: DashboardProps) {
   const [showExample, setShowExample] = useState(initialExample);
   const [method, setMethod] = useState<RankingMethod>('merge');
   const [topOnly, setTopOnly] = useState(false);
@@ -44,6 +45,7 @@ export function ChampionshipDashboard({ onRace, provider, initialExample = false
   return <>
     <div className="page-heading"><div><p className="eyebrow">THE SEASON AT A GLANCE</p><h1>Championship Dashboard<span className="heading-dot">.</span></h1><p>Race results, championship standings and live top-k presentation.</p></div>{source ? <span className="tag">{source.kind === 'example' ? 'Example data' : 'Live championship'}</span> : <span className="tag muted-tag">{sessions.length ? 'Session results available' : 'No race results'}</span>}</div>
     <SessionResults sessions={sessions} selectedId={selectedSessionId} onSelect={onSelectSession} onRace={onSetupRace} />
+    {source?.kind === 'live' && <section className="panel"><div className="panel-heading"><div><h2>{source.complete ? 'Season complete' : source.races.length ? 'Continue your season' : 'Your season starts here.'}</h2><p>{source.races.length} of 3 championship races completed. Circuit order: Grand Prix Raceway, Desert Canyon, City Grid.</p></div></div><div className="button-row">{!source.complete && <button className="button primary" onClick={onRace}>{source.races.length ? 'Continue championship' : 'Start championship'}</button>}{source.reset && onNewChampionship && (source.races.length > 0 || source.complete) && <button className="button secondary" onClick={onNewChampionship}>Start new championship</button>}</div></section>}
     {!source || !reading ? <section className={`panel ${sessions.length ? 'session-championship-pending' : 'integration-state'}`}><span className="state-mark" aria-hidden="true">01</span><p className="eyebrow">A CLEAN SLATE</p><h2>{sessions.length ? 'Championship standings await scoring.' : 'Your season starts here.'}</h2><p>Championship standings appear when a scoring provider is connected. You can inspect a separate example season below.</p><div className="button-row"><button className="button primary" onClick={() => setShowExample(true)}>Preview example dashboard</button><button className="button secondary" onClick={onRace}>Championship setup ↗</button></div></section> : <>
       {source.kind === 'example' && <div className="preview-banner"><strong>EXAMPLE CHAMPIONSHIP</strong><span>Independent sample season, not replay results. No race was played and no ranking algorithm is being benchmarked.</span>{!provider && <button className="text-button" onClick={() => setShowExample(false)}>Hide example data</button>}</div>}
       {reading.error ? <section className="panel integration-state" role="alert"><h2>Standings unavailable</h2><p>{reading.error}</p><button className="button secondary" onClick={() => { setTopOnly(false); setMethod('merge'); }}>Return to full Merge Sort view</button></section> : <>
