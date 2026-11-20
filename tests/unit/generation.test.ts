@@ -101,6 +101,12 @@ describe('Track Generation & Validation (Alishba)', () => {
     const rep3 = TrackValidator.validate(gpCircuit.vertices as Vertex[], noShortcuts as Edge[]);
     expect(rep3.valid).toBe(false);
     expect(rep3.errors.some((e) => e.includes('at least 2 shortcuts'))).toBe(true);
+
+    // 4. Edge fuel cost exceeding tank capacity (Bug 6b verification)
+    const impossibleFuelEdges = gpCircuit.edges.map((e) => ({ ...e, fuelCost: 1000 }));
+    const rep4 = TrackValidator.validate(gpCircuit.vertices as Vertex[], impossibleFuelEdges as Edge[]);
+    expect(rep4.valid).toBe(false);
+    expect(rep4.errors.some((e) => e.includes('exceeds maximum tank capacity'))).toBe(true);
   });
 
   it('TrackGenerator procedurally generates a valid track passing validation', () => {

@@ -54,6 +54,45 @@ export class ShortcutBot {
       }
     }
 
+    // Explicitly prioritize open legal shortcuts from current position
+    const openShortcuts = graph
+      .getNeighbors(currentVertex)
+      .filter((e) => e.isShortcut && e.status === 'Open');
+
+    let bestShortcutRoute: RouteResult | null = null;
+    let minShortcutTime = Infinity;
+
+    for (const scEdge of openShortcuts) {
+      if (scEdge.to === nextTarget) {
+        bestShortcutRoute = {
+          path: [currentVertex, nextTarget],
+          edgeIds: [scEdge.id],
+          distance: scEdge.distance,
+          time: scEdge.baseTime,
+          scalarCost: scEdge.baseTime,
+          fuelNeeded: scEdge.fuelCost,
+        };
+        break;
+      }
+      const onward = dijkstra(graph, scEdge.to, nextTarget, 'Speed');
+      if (onward) {
+        const totalTime = scEdge.baseTime + onward.time;
+        if (totalTime < minShortcutTime) {
+          minShortcutTime = totalTime;
+          bestShortcutRoute = {
+            path: [currentVertex, ...onward.path],
+            edgeIds: [scEdge.id, ...onward.edgeIds],
+            distance: scEdge.distance + onward.distance,
+            time: totalTime,
+            scalarCost: totalTime,
+            fuelNeeded: scEdge.fuelCost + onward.fuelNeeded,
+          };
+        }
+      }
+    }
+
+    if (bestShortcutRoute) return bestShortcutRoute;
+
     // Attempt speed routing (which favors low time and shortcuts)
     const speedRoute = dijkstra(graph, currentVertex, nextTarget, 'Speed');
     if (speedRoute) return speedRoute;

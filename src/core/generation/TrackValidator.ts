@@ -75,6 +75,11 @@ export class TrackValidator {
       if (!vIds.has(e.from)) errors.push(`Edge ${e.id} references invalid from-vertex ${e.from}.`);
       if (!vIds.has(e.to)) errors.push(`Edge ${e.id} references invalid to-vertex ${e.to}.`);
       if (e.isShortcut) shortcutCount++;
+
+      // Physical fuel constraint: no single edge may demand more than full tank
+      if (e.fuelCost > MAX_FUEL) {
+        errors.push(`Edge ${e.id} fuel cost (${e.fuelCost}) exceeds maximum tank capacity (${MAX_FUEL}). Track is physically impassable.`);
+      }
     }
 
     if (shortcutCount < 2) {
@@ -89,7 +94,7 @@ export class TrackValidator {
       return { valid: false, errors };
     }
 
-    // 4. Graph connectivity and route reachability
+      // 4. Graph connectivity and route reachability
     try {
       const graph = new TrackGraph(vertices, edges);
       const startVertex = vertices.find((v) => v.type === 'Start')!;
@@ -104,6 +109,35 @@ export class TrackValidator {
           errors.push(`Unreachable checkpoint: cannot route from vertex ${cur} to checkpoint ${next}.`);
           break;
         }
+        // Per-leg check: each individual edge's fuel cost must be ≤ MAX_FUEL
+        // (a single edge must never require more fuel than the full tank can hold)
+        for (const eid of leg.edgeIds) {
+          const rawId = eid.endsWith('~rev') ? eid.slice(0, -4) : eid;
+          const edge = edges.find((e) => e.id === rawId);
+          if (edge && edge.fuelCost > MAX_FUEL) {
+            errors.push(
+              `Edge ${edge.id} requires ${edge.fuelCost} fuel — exceeds tank capacity of ${MAX_FUEL}. Track is physically uncompletable.`,
+            );
+          }
+        }
+        // Leg fuel reachability: either direct leg <= MAX_FUEL, or bridged by an intermediate fuel station
+        if (leg.fuelNeeded > MAX_FUEL) {
+          const fuelStations = vertices.filter((v) => v.type === 'FuelStation');
+          let stationFound = false;
+          for (const s of fuelStations) {
+            const toStation = dijkstra(graph, cur, s.id, 'Economy');
+            const fromStation = dijkstra(graph, s.id, next, 'Economy');
+            if (toStation && fromStation && toStation.fuelNeeded <= MAX_FUEL && fromStation.fuelNeeded <= MAX_FUEL) {
+              stationFound = true;
+              break;
+            }
+          }
+          if (!stationFound) {
+            errors.push(
+              `Impossible fuel requirement between vertex ${cur} and checkpoint ${next}: requires ${leg.fuelNeeded.toFixed(1)} fuel, exceeding tank capacity (${MAX_FUEL}) with no reachable intermediate fuel station.`,
+            );
+          }
+        }
         totalFuelRequired += leg.fuelNeeded;
         cur = next;
       }
@@ -113,6 +147,16 @@ export class TrackValidator {
       if (!finalLeg) {
         errors.push(`Cannot complete lap: cannot route from last checkpoint ${cur} back to start.`);
       } else {
+        // Per-leg check on return segment
+        for (const eid of finalLeg.edgeIds) {
+          const rawId = eid.endsWith('~rev') ? eid.slice(0, -4) : eid;
+          const edge = edges.find((e) => e.id === rawId);
+          if (edge && edge.fuelCost > MAX_FUEL) {
+            errors.push(
+              `Return-leg edge ${edge.id} requires ${edge.fuelCost} fuel — exceeds tank capacity of ${MAX_FUEL}.`,
+            );
+          }
+        }
         totalFuelRequired += finalLeg.fuelNeeded;
       }
 

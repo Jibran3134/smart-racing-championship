@@ -120,14 +120,15 @@ export class TrackGenerator {
         isShortcut: false,
       });
 
-      // 3. Compute MST to guarantee connectivity backbone
-      primMST(rawVertices, candidateEdges);
+      // 3. Compute MST to guarantee connectivity backbone — USE the returned MST edges
+      //    (Bug fix: previously primMST result was discarded; now we capture mstEdges)
+      const { mstEdges } = primMST(rawVertices, candidateEdges);
 
-      // 4. Add 2 designated shortcut chords across the ring
+      // 4. Add 2 designated shortcut chords across the ring (augment MST backbone)
       const sc1From = 1;
       const sc1To = Math.floor(count / 2);
       const sc1Dist = Math.round(Math.hypot(rawVertices[sc1To].x - rawVertices[sc1From].x, rawVertices[sc1To].y - rawVertices[sc1From].y));
-      candidateEdges.push({
+      mstEdges.push({
         id: `shortcut-1`,
         from: sc1From,
         to: sc1To,
@@ -143,7 +144,7 @@ export class TrackGenerator {
       const sc2From = Math.floor(count * 0.6);
       const sc2To = Math.floor(count * 0.9);
       const sc2Dist = Math.round(Math.hypot(rawVertices[sc2To].x - rawVertices[sc2From].x, rawVertices[sc2To].y - rawVertices[sc2From].y));
-      candidateEdges.push({
+      mstEdges.push({
         id: `shortcut-2`,
         from: sc2From,
         to: sc2To,
@@ -156,8 +157,22 @@ export class TrackGenerator {
         isShortcut: true,
       });
 
-      // Combined edge set (ring + spur + shortcuts)
-      const allEdges = candidateEdges;
+      // Add the spur to dead-end vertex (leaf — not part of ring MST)
+      mstEdges.push({
+        id: `road-spur`,
+        from: 2,
+        to: count,
+        distance: spurDist,
+        baseTime: 6,
+        fuelCost: 3,
+        difficulty: 3,
+        status: 'Open',
+        directed: false,
+        isShortcut: false,
+      });
+
+      // Combined edge set: MST backbone + shortcuts + spur dead-end
+      const allEdges = mstEdges;
 
       // 5. Backtracking feature placement (Start, Checkpoints 1..10, FuelStations, Nitro)
       const placement = placeTrackFeatures(rawVertices, allEdges, {
