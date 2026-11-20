@@ -11,7 +11,7 @@
 
 import type { TrackGraph } from '../../graph/TrackGraph';
 import { dijkstra } from '../../algorithms/routing/dijkstra';
-import { MAX_FUEL, REFUEL_THRESHOLD } from '../../config';
+import { MAX_FUEL } from '../../config';
 import type { RouteResult } from '../../types';
 
 export class MainRouteBot {
@@ -47,8 +47,8 @@ export class MainRouteBot {
   ): RouteResult | null {
     const nextTarget = remainingCheckpoints.length > 0 ? remainingCheckpoints[0] : finishVertex;
 
-    // Check if refuelling is critically needed (< 25%)
-    const lowFuel = currentFuel <= MAX_FUEL * REFUEL_THRESHOLD;
+    // Check if refuelling is critically needed (< 50% — proactive, not emergency)
+    const lowFuel = currentFuel <= MAX_FUEL * 0.50;
     if (lowFuel) {
       // Find nearest active FuelStation
       let nearestStation: number | null = null;

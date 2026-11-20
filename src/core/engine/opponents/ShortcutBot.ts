@@ -12,7 +12,7 @@
 
 import type { TrackGraph } from '../../graph/TrackGraph';
 import { dijkstra } from '../../algorithms/routing/dijkstra';
-import { MAX_FUEL, REFUEL_THRESHOLD } from '../../config';
+import { MAX_FUEL } from '../../config';
 import type { RouteResult } from '../../types';
 
 export class ShortcutBot {
@@ -33,8 +33,8 @@ export class ShortcutBot {
   ): RouteResult | null {
     const nextTarget = remainingCheckpoints.length > 0 ? remainingCheckpoints[0] : finishVertex;
 
-    // Refuel check if critically low
-    if (currentFuel <= MAX_FUEL * REFUEL_THRESHOLD) {
+    // Refuel check if critically low (< 50% — proactive)
+    if (currentFuel <= MAX_FUEL * 0.50) {
       let nearestStation: number | null = null;
       let minStationDist = Infinity;
 

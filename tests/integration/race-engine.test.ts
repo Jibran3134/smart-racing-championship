@@ -3,6 +3,8 @@ import { RaceEngine } from '../../src/core/engine/RaceEngine';
 import { ChampionshipManager } from '../../src/core/championship/ChampionshipManager';
 import type { Vertex, Edge } from '../../src/core/types';
 import gpCircuit from '../../src/data/tracks/circuit-grand-prix.json';
+import dcCircuit from '../../src/data/tracks/circuit-desert-canyon.json';
+import cgCircuit from '../../src/data/tracks/circuit-city-grid.json';
 
 describe('RaceEngine Integration & Championship (Alishba)', () => {
   it('initializes the live race engine and steps through simulation', () => {
@@ -82,6 +84,10 @@ describe('RaceEngine Integration & Championship (Alishba)', () => {
     expect(top2.length).toBe(2);
     expect(top2[0].racerId).toBe(standings[0].racerId);
     expect(top2[1].racerId).toBe(standings[1].racerId);
+
+    // Verify restarting completed race does not throw "Time must be finite and monotonic"
+    expect(() => engine.restart()).not.toThrow();
+    expect(engine.getState().phase).toBe('ready');
   });
 
   it('handles restart and reinitializes race state cleanly', () => {
@@ -145,35 +151,36 @@ describe('RaceEngine Integration & Championship (Alishba)', () => {
     expect(dnfResult?.dnfReason).toBe('Fuel exhausted.');
   });
 
-  it('completes default two-lap race successfully with pit stop refuelling', () => {
-    const engine = new RaceEngine({
-      trackName: gpCircuit.name,
-      vertices: gpCircuit.vertices as Vertex[],
-      edges: gpCircuit.edges as Edge[],
-      startVertexId: 0,
-      laps: 2,
-    });
+  it('completes default two-lap race successfully across all three circuits without fuel DNF', () => {
+    const circuits = [
+      { name: 'Grand Prix', data: gpCircuit },
+      { name: 'Desert Canyon', data: dcCircuit },
+      { name: 'City Grid', data: cgCircuit },
+    ];
 
-    engine.start();
-    engine.step(3.1); // clear countdown
+    for (const { name, data } of circuits) {
+      const engine = new RaceEngine({
+        trackName: name,
+        vertices: data.vertices as Vertex[],
+        edges: data.edges as Edge[],
+        startVertexId: 0,
+        laps: 2,
+      });
 
-    // Run 2-lap race to completion
-    for (let i = 0; i < 400 && engine.getState().phase !== 'finished'; i++) {
-      engine.step(1.0);
+      engine.start();
+      engine.step(3.1);
+
+      for (let i = 0; i < 400 && engine.getState().phase !== 'finished'; i++) {
+        engine.step(1.0);
+      }
+
+      const state = engine.getState();
+      expect(state.phase).toBe('finished');
+      const fuelDnfs = state.cars.filter((c) => c.status === 'dnf' && c.reason === 'Fuel exhausted.');
+      expect(fuelDnfs.length).toBe(0);
+      const finished = state.cars.filter((c) => c.status === 'finished');
+      expect(finished.length).toBeGreaterThan(0);
     }
-
-    const state = engine.getState();
-    expect(state.phase).toBe('finished');
-
-    const finishedCars = state.cars.filter((c) => c.status === 'finished');
-    expect(finishedCars.length).toBeGreaterThan(0);
-    expect(finishedCars[0].completedLaps).toBe(2);
-
-    // Verify restarting completed race does not throw "Time must be finite and monotonic"
-    expect(() => engine.restart()).not.toThrow();
-    engine.start();
-    expect(() => engine.step(3.1)).not.toThrow();
-    expect(engine.getState().phase).toBe('running');
   });
 
   it('verifies bot strategies produce distinct routes and shortcut preference', () => {

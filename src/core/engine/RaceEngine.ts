@@ -30,7 +30,6 @@ import {
   NITRO_DURATION_SECONDS,
   NITRO_FUEL_MULTIPLIER,
   REFUEL_STOP_SECONDS,
-  REFUEL_THRESHOLD,
   MAX_STATION_PURCHASE,
   fuelMultiplier,
   pointsForPosition,
@@ -486,6 +485,20 @@ export class RaceEngine {
     const fuelRate = (edge.fuelCost / Math.max(1, edge.distance)) * fuelMultiplier(edge.difficulty) * fuelBurnMult;
     const fuelNeeded = travel * fuelRate;
 
+    // Pre-edge fuel guard: if the car cannot complete this entire edge, attempt to
+    // reroute via a fuel station (proactive — avoids mid-edge DNF on high-difficulty tracks).
+    // Only reroute if the car has enough fuel to actually reach a station.
+    const fullEdgeFuel = (edge.fuelCost / Math.max(1, edge.distance)) * fuelMultiplier(edge.difficulty) * edge.distance;
+    if (car.progress < 1e-9 && fullEdgeFuel > car.fuel + 1e-9) {
+      const prevEdgeId = car.edgeId;
+      this._recalculateCarRoute(car);
+      if (car.edgeId !== prevEdgeId) {
+        // _recalculateCarRoute found a station route and updated car.edgeId — skip this tick
+        return;
+      }
+      // No reachable station — fall through to DNF below
+    }
+
     if (fuelNeeded > car.fuel + 1e-9) {
       this._dnf(car, 'Fuel exhausted.');
       return;
@@ -540,8 +553,9 @@ export class RaceEngine {
     // Vertex services: Fuel Station & Nitro Pickup
     const vertex = this.graph.getVertex(arrivedVertexId);
     if (vertex && vertex.active) {
-      if (vertex.type === 'FuelStation' && car.fuel < MAX_FUEL * 0.75) {
-        car.fuel = Math.min(MAX_FUEL, car.fuel + MAX_STATION_PURCHASE);
+      if (vertex.type === 'FuelStation' && car.fuel < MAX_FUEL * 0.90) {
+        const refuelAmount = Math.min(MAX_FUEL - car.fuel, MAX_STATION_PURCHASE);
+        car.fuel = Math.min(MAX_FUEL, car.fuel + refuelAmount);
         car.stoppingUntil = this.time + dt + REFUEL_STOP_SECONDS;
         car.status = 'waiting';
         car.reason = 'Pit stop refuelling.';
@@ -557,9 +571,9 @@ export class RaceEngine {
       }
     }
 
-    // Emergency refuel detour check when fuel critically low (< 25%)
+    // Emergency refuel detour check when fuel critically low (< 50%)
     const isHeadingToStation = car.route.slice(Math.max(0, car.routeIndex)).some((v) => this.graph.getVertex(v)?.type === 'FuelStation');
-    if (car.fuel <= MAX_FUEL * REFUEL_THRESHOLD && !isHeadingToStation && vertex?.type !== 'FuelStation') {
+    if (car.fuel <= MAX_FUEL * 0.50 && !isHeadingToStation && vertex?.type !== 'FuelStation') {
       this._recalculateCarRoute(car);
     } else {
       // Advance to next edge in planned route
@@ -592,28 +606,42 @@ export class RaceEngine {
     const bot = this.botMap.get(car.id);
 
     let nextLeg: RouteResult | null = null;
-    if (bot) {
-      nextLeg = bot.planNextLeg(this.graph, curVertex, remainingCheckpoints, this.startId, car.fuel);
-    } else {
-      // Human player: if low on fuel, divert to nearest fuel station
-      if (car.fuel <= MAX_FUEL * REFUEL_THRESHOLD) {
-        let nearestStation: number | null = null;
-        let minStationDist = Infinity;
-        for (const v of this.graph.getVertices()) {
-          if (v.type === 'FuelStation' && v.active) {
-            const leg = dijkstra(this.graph, curVertex, v.id, 'Balanced');
-            if (leg && leg.distance < minStationDist) {
-              minStationDist = leg.distance;
-              nearestStation = v.id;
-            }
+
+    // ----------------------------------------------------------------
+    // Proactive fuel station detour: triggered whenever the car cannot
+    // safely reach the next checkpoint + return to a station without
+    // running dry.  Threshold = 50% of tank so there is margin.
+    // ----------------------------------------------------------------
+    const PROACTIVE_THRESHOLD = MAX_FUEL * 0.50;
+    const nextTarget = remainingCheckpoints[0] ?? this.startId;
+    const legToNext = dijkstra(this.graph, curVertex, nextTarget, 'Economy');
+    const fuelToNext = legToNext?.fuelNeeded ?? Infinity;
+
+    const needsRefuel = car.fuel < PROACTIVE_THRESHOLD || car.fuel < fuelToNext + 2;
+
+    if (needsRefuel && curVertex !== this.startId) {
+      // Find nearest active fuel station reachable with current fuel
+      let nearestStation: number | null = null;
+      let minStationFuel = Infinity;
+      for (const v of this.graph.getVertices()) {
+        if (v.type === 'FuelStation' && v.active && v.id !== curVertex) {
+          const leg = dijkstra(this.graph, curVertex, v.id, 'Economy');
+          if (leg && leg.fuelNeeded < car.fuel && leg.fuelNeeded < minStationFuel) {
+            minStationFuel = leg.fuelNeeded;
+            nearestStation = v.id;
           }
         }
-        if (nearestStation !== null && nearestStation !== curVertex) {
-          nextLeg = dijkstra(this.graph, curVertex, nearestStation, 'Balanced');
-        }
       }
-      if (!nextLeg) {
-        nextLeg = dijkstra(this.graph, curVertex, remainingCheckpoints[0] ?? this.startId, 'Balanced');
+      if (nearestStation !== null) {
+        nextLeg = dijkstra(this.graph, curVertex, nearestStation, 'Economy');
+      }
+    }
+
+    if (!nextLeg) {
+      if (bot) {
+        nextLeg = bot.planNextLeg(this.graph, curVertex, remainingCheckpoints, this.startId, car.fuel);
+      } else {
+        nextLeg = dijkstra(this.graph, curVertex, nextTarget, 'Balanced');
       }
     }
 
